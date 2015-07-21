@@ -1,5 +1,5 @@
 /*jslint indent: 2 */
-(function () {
+(function script(exportRoot, exportKey) {
   "use strict";
 
   /*! Copyright (c) 2015 Tristan Cavelier <t.cavelier@free.fr>
@@ -9,5 +9,18 @@
       To Public License, Version 2, as published by Sam Hocevar. See
       http://www.wtfpl.net/ for more details. */
 
-  return;
-}());
+  /*jslint indent: 2, nomen: true */
+
+  var env = {};
+
+  if (typeof exportKey !== "string") { exportKey = "env"; }
+  if (typeof exportRoot === "object" && exportRoot !== null) { exportRoot[exportKey] = env; }
+
+  env.toScript = function () { return "/*jslint indent: 2 */\n(" + script.toString() + "(this));\n"; };
+  env.newEnv = function () { return script(); };
+  env.this = env;
+
+  //////////////////////////////////////////////////////////////////////
+
+  return env;
+}(this));
