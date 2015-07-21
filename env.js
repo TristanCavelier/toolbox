@@ -216,6 +216,18 @@
   }
   env.newCancellableDeferred = newCancellableDeferred;
 
+  //////////////////////
+  // DOM Manipulation //
+  //////////////////////
+
+  function textToHTMLElements(text) {
+    /*global document */
+    var div = document.createElement("div");
+    div.innerHTML = text;
+    return div.querySelectorAll("*");
+  }
+  env.textToHTMLElements = textToHTMLElements;
+
   //////////////////////////////////////////////////////////////////////
 
   return env;
