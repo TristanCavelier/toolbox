@@ -356,6 +356,39 @@
   }
   env.newXMLHttpRequestPromise = newXMLHttpRequestPromise;
 
+  ////////////////////
+  // Worker helpers //
+  ////////////////////
+
+  function evalOnWorkerPromise(value) {
+    /*global Worker, URL, Blob */
+    // XXX how to avoid "Uncaught (in promise) error..." ?
+    var worker = new Worker(URL.createObjectURL(new Blob([[
+      "var global = this;",
+      "onmessage = function(e) {",
+      "  Promise.resolve().then(function () {",
+      "    return global.eval(e.data);",
+      "  }).then(function (value) {",
+      "    postMessage([value]);",
+      "  }, function (reason) {",
+      "    if (reason instanceof Error) { reason = reason.toString(); }",
+      "    postMessage([undefined, reason]);",
+      "  });",
+      "}"
+    ].join("\n")], {type: "application/javascript"}))), d = env.newCancellableDeferred();
+    d.oncancel = function () {
+      worker.terminate();
+      d.reject(new Error("evalOnWorkerPromise cancelled"));
+    };
+    worker.onmessage = function (e) {
+      if (e.data.length > 1) { d.reject(e.data[1]); } else { d.resolve(e.data[0]); }
+      worker.terminate();
+    };
+    worker.postMessage(value);
+    return d.promise;
+  }
+  env.evalOnWorkerPromise = evalOnWorkerPromise;
+
   //////////////////////////////////////////////////////////////////////
 
   return env;
