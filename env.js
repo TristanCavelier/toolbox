@@ -33,6 +33,11 @@
     env.Promise = typeof Promise === "function" ? Promise : null;
   }());
 
+  function newPromise(executor) {
+    return new env.Promise(executor);
+  }
+  env.newPromise = newPromise;
+
   //////////////
   // Polyfill //
   //////////////
