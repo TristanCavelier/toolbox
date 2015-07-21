@@ -182,6 +182,20 @@
     env.Promise = env.PromisePolyfill;
   }
 
+  //////////////////////////
+  // Promise Manipulation //
+  //////////////////////////
+
+  function newDeferred() {
+    var it = {};
+    it.promise = env.newPromise(function (resolve, reject) {
+      it.resolve = resolve;
+      it.reject = reject;
+    });
+    return it;
+  }
+  env.newDeferred = newDeferred;
+
   //////////////////////////////////////////////////////////////////////
 
   return env;
