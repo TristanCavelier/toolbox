@@ -228,6 +228,53 @@
   }
   env.textToHTMLElements = textToHTMLElements;
 
+  //////////
+  // HTTP //
+  //////////
+
+  function textToHTTPHeadersObject(text) {
+    // text ->
+    //  "Server:   SimpleHTTP/0.6 Python/3.4.1\r\n
+    //   Date: Wed, 04 Jun 2014 14:06:57 GMT   \r\n
+    //   Value: hello\r\n     guys  \r\n
+    //   Content-Type: application/x-silverlight\r\n
+    //   Content-Length: 11240\r\n
+    //   Last-Modified: Mon, 03 Dec 2012 23:51:07 GMT\r\n
+    //   X-Cache: HIT via me\r\n
+    //   X-Cache: HIT via other\r\n"
+    // Returns ->
+    //   { "Server": "SimpleHTTP/0.6 Python/3.4.1",
+    //     "Date": "Wed, 04 Jun 2014 14:06:57 GMT",
+    //     "Value": "hello guys",
+    //     "Content-Type": "application/x-silverlight",
+    //     "Content-Length": "11240",
+    //     "Last-Modified": "Mon, 03 Dec 2012 23:51:07 GMT",
+    //     "X-Cache": "HIT via me, HIT via other" }
+
+    /*jslint regexp: true */
+    var result = {}, key, value = "";
+    text.split("\r\n").forEach(function (line) {
+      if (line[0] === " " || line[0] === "\t") {
+        value += " " + line.replace(/^\s*/, "").replace(/\s*$/, "");
+      } else {
+        if (key) {
+          if (result[key]) {
+            result[key] += ", " + value;
+          } else {
+            result[key] = value;
+          }
+        }
+        key = /^([^:]+)\s*:\s*(.*)$/.exec(line);
+        if (key) {
+          value = key[2].replace(/\s*$/, "");
+          key = key[1];
+        }
+      }
+    });
+    return result;
+  }
+  env.textToHTTPHeadersObject = textToHTTPHeadersObject;
+
   //////////////////////////////////////////////////////////////////////
 
   return env;
