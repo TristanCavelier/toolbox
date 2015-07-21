@@ -286,7 +286,7 @@
      * code in status property) as rejected value.
      *
      * @param  {Object} param The parameters
-     * @param  {String} param.url The url (can be `param.uri`)
+     * @param  {String} param.url The url
      * @param  {String} [param.method="GET"] The request method
      * @param  {String} [param.responseType=""] The data type to retrieve
      * @param  {String} [param.overrideMimeType] The mime type to override
