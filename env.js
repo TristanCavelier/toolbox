@@ -196,6 +196,26 @@
   }
   env.newDeferred = newDeferred;
 
+  function newCancellableDeferred() {
+    // Simple example:
+    //   var cd = env.newCancellableDeferred()
+    //   cd.oncancel = function () { cd.reject("CANCELLED"); };
+    //   ...do asynchronous code here...
+    //   return cd.promise;
+
+    var it = {};
+    it.promise = env.newPromise(function (resolve, reject) {
+      it.resolve = resolve;
+      it.reject = reject;
+    });
+    it.promise.cancel = function () {
+      try { it.oncancel(); } catch (ignore) {}
+      return this;
+    };
+    return it;
+  }
+  env.newCancellableDeferred = newCancellableDeferred;
+
   //////////////////////////////////////////////////////////////////////
 
   return env;
