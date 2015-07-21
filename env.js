@@ -389,6 +389,43 @@
   }
   env.evalOnWorkerPromise = evalOnWorkerPromise;
 
+  /////////////////////////
+  // Object Manipulation //
+  /////////////////////////
+
+  function copyObjectProperties(dst, src) {
+    /*jslint forin: true */
+    var k;
+    for (k in src) {
+      dst[k] = src[k];
+    }
+    return dst;
+  }
+  env.copyObjectProperties = copyObjectProperties;
+
+  function copyObjectOwnProperties(dst, src) {
+    var k;
+    for (k in src) {
+      if (src.hasOwnProperty(k)) {
+        dst[k] = src[k];
+      }
+    }
+    return dst;
+  }
+  env.copyObjectOwnProperties = copyObjectOwnProperties;
+
+  function setDefaultObjectProperties(dst, src) {
+    /*jslint forin: true */
+    var k;
+    for (k in src) {
+      if (dst[k] === undefined) {
+        dst[k] = src[k];
+      }
+    }
+    return dst;
+  }
+  env.setDefaultObjectProperties = setDefaultObjectProperties;
+
   //////////////////////////////////////////////////////////////////////
 
   return env;
