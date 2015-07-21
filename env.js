@@ -22,5 +22,16 @@
 
   //////////////////////////////////////////////////////////////////////
 
+  ////////////
+  // Native //
+  ////////////
+
+  (function () {
+    /*global setTimeout, clearTimeout, Promise */
+    env.setTimeout = typeof setTimeout === "function" ? setTimeout.bind(null) : null;
+    env.clearTimeout = typeof clearTimeout === "function" ? clearTimeout.bind(null) : null;
+    env.Promise = typeof Promise === "function" ? Promise : null;
+  }());
+
   return env;
 }(this));
