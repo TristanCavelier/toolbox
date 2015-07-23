@@ -323,15 +323,26 @@
     }
     xhr.addEventListener("load", function (e) {
       if (param.getEvent) { return d.resolve(e); }
-      var r;
-      if (e.target.status < 400) {
-        r = env.textToHTTPHeadersObject(e.target.getAllResponseHeaders());
-        r.data = e.target.response;
-        return d.resolve(r);
+      var r, t = e.target, callback;
+      if (t.status < 400) {
+        r = {};
+        callback = d.resolve;
+      } else {
+        r = new Error("XMLHttpRequest: " + (t.statusText || "unknown error"));
+        callback = d.reject;
       }
-      r = new Error("request: " + (e.target.statusText || "unknown error"));
-      r.status = e.target.status;
-      return d.reject(r);
+      r.response = t.response;
+      r.responseText = t.responseText;
+      r.responseType = t.responseType;
+      r.responseURL = t.responseURL;
+      r.responseXML = t.responseXML;
+      r.status = t.status || 0;
+      r.statusText = t.statusText || "Unknown";
+      r.timeout = t.timeout;
+      r.withCredentials = t.withCredentials;
+      r.headersText = t.getAllResponseHeaders();
+      r.headers = env.textToHTTPHeadersObject(r.headersText);
+      callback(r);
     }, false);
     xhr.addEventListener("error", function (e) {
       if (param.getEvent) { return d.resolve(e); }
