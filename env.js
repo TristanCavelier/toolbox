@@ -488,6 +488,83 @@
   }
   env.setDefaultObjectProperties = setDefaultObjectProperties;
 
+  ///////////////////////////
+  // function manipulation //
+  ///////////////////////////
+
+  function functionsToGenerator(functions) {
+    /**
+     *     functionsToGenerator(functions): Generator
+     *
+     * Convert a sequence of function to a kind of generator function.
+     * This function works with old ECMAScript version.
+     *
+     *     var config;
+     *     functionsToGenerator([function () {
+     *       return getConfig();
+     *     }, function (_config) {
+     *       config = _config;
+     *       config.enableSomething = true;
+     *       return sleep(1000);
+     *     }, function () {
+     *       return putConfig(config);
+     *     }, [null, function (e) {
+     *       console.error(e);
+     *     }]]);
+     *
+     * @param  {Array} functions An array of function.
+     * @return {Generator} A new Generator
+     */
+    return function () {
+      var i = 0, g;
+      function exec(f, value) {
+        try {
+          value = f(value);
+          if (i === functions.length) {
+            return {"done": true, "value": value};
+          }
+          return {"value": value};
+        } catch (e) {
+          return g["throw"](e);
+        }
+      }
+      g = {
+        "next": function (value) {
+          var f;
+          while (i < functions.length) {
+            if (Array.isArray(functions[i])) {
+              f = functions[i][0];
+            } else {
+              f = functions[i];
+            }
+            if (typeof f === "function") {
+              i += 1;
+              return exec(f, value);
+            }
+            i += 1;
+          }
+          return {"done": true, "value": value};
+        },
+        "throw": function (value) {
+          var f;
+          while (i < functions.length) {
+            if (Array.isArray(functions[i])) {
+              f = functions[i][1];
+            }
+            if (typeof f === "function") {
+              i += 1;
+              return exec(f, value);
+            }
+            i += 1;
+          }
+          throw value;
+        }
+      };
+      return g;
+    };
+  }
+  env.functionsToGenerator = functionsToGenerator;
+
   //////////////////////////////////////////////////////////////////////
 
   return env;
