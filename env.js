@@ -216,6 +216,57 @@
   }
   env.newCancellableDeferred = newCancellableDeferred;
 
+  function spawnPromise(generator) {
+    /**
+     *     spawnPromise(generator): Promise< returned_value >
+     *
+     * Use generator function to do asynchronous operations sequentialy using
+     * `yield` operator.
+     *
+     *     spawn(function* () {
+     *       try {
+     *         var config = yield getConfig();
+     *         config.enableSomething = true;
+     *         yield sleep(1000);
+     *         yield putConfig(config);
+     *       } catch (e) {
+     *         console.error(e);
+     *       }
+     *     });
+     *
+     * @param  {Function} generator A generator function.
+     * @return {Promise} A new promise
+     */
+    return new env.Promise(function (resolve, reject) {
+      var promise, g = generator(), prev, next = {};
+      function rec(method) {
+        try {
+          next = g[method](prev);
+        } catch (e) {
+          return reject(e);
+        }
+        if (next.done) {
+          return resolve(next.value);
+        }
+        promise = next.value;
+        if (!promise || typeof promise.then !== "function") {
+          // The value is not a thenable. However, the user used `yield`
+          // anyway. It means he wants to left hand to another process.
+          promise = env.Promise.resolve(promise);
+        }
+        return promise.then(function (value) {
+          prev = value;
+          rec("next");
+        }, function (reason) {
+          prev = reason;
+          rec("throw");
+        });
+      }
+      rec("next");
+    });
+  }
+  env.spawnPromise = spawnPromise;
+
   //////////////////////
   // DOM Manipulation //
   //////////////////////
