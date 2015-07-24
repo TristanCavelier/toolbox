@@ -271,19 +271,19 @@
   // DOM Manipulation //
   //////////////////////
 
-  function textToHTMLElements(text) {
+  function textToHtmlElements(text) {
     /*global document */
     var div = document.createElement("div");
     div.innerHTML = text;
     return div.querySelectorAll("*");
   }
-  env.textToHTMLElements = textToHTMLElements;
+  env.textToHtmlElements = textToHtmlElements;
 
   //////////
   // HTTP //
   //////////
 
-  function textToHTTPHeadersObject(text) {
+  function textToHttpHeadersObject(text) {
     // text ->
     //  "Server:   SimpleHTTP/0.6 Python/3.4.1\r\n
     //   Date: Wed, 04 Jun 2014 14:06:57 GMT   \r\n
@@ -324,12 +324,12 @@
     });
     return result;
   }
-  env.textToHTTPHeadersObject = textToHTTPHeadersObject;
+  env.textToHttpHeadersObject = textToHttpHeadersObject;
 
-  function newXMLHttpRequestPromise(param) {
+  function newXmlHttpRequestPromise(param) {
     /**
-     *    newXMLHttpRequestPromise({url: location, responseType: "text"}).then(propertyGetter("data"));
-     *    newXMLHttpRequestPromise({url: location}).then(propertyGetter("Content-Length"));
+     *    newXmlHttpRequestPromise({url: location, responseType: "text"}).then(propertyGetter("data"));
+     *    newXmlHttpRequestPromise({url: location}).then(propertyGetter("Content-Length"));
      *
      * Send request with XHR and return a promise. xhr.onload: The promise is
      * resolved when the status code is lower than 400 with a forged response
@@ -392,7 +392,7 @@
       r.timeout = t.timeout;
       r.withCredentials = t.withCredentials;
       r.headersText = t.getAllResponseHeaders();
-      r.headers = env.textToHTTPHeadersObject(r.headersText);
+      r.headers = env.textToHttpHeadersObject(r.headersText);
       callback(r);
     }, false);
     xhr.addEventListener("error", function (e) {
@@ -416,7 +416,7 @@
     xhr.send(param.data);
     return d.promise;
   }
-  env.newXMLHttpRequestPromise = newXMLHttpRequestPromise;
+  env.newXmlHttpRequestPromise = newXmlHttpRequestPromise;
 
   ////////////////////
   // Worker helpers //
