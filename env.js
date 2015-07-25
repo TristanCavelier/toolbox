@@ -604,6 +604,102 @@
   }
   env.regexpToStrings = regexpToStrings;
 
+  ////////////////////////
+  // Parsers and eaters //
+  ////////////////////////
+
+  function eatMimeType(text) {
+    // see https://tools.ietf.org/html/rfc2045#section-5.1
+    //   mimetype := type "/" subtype
+    //     type /[a-z]+/
+    //     subtype /[a-zA-Z_\-\.\+]+/
+    var res = (/^([a-z]+)\/([a-zA-Z_\-\.\+]+)/).exec(text);
+    if (res) {
+      return {
+        index: 0,
+        input: text,
+        match: res[0],
+        type: res[1],
+        subtype: res[2]
+      };
+    }
+    return null;
+  }
+  env.eatMimeType = eatMimeType;
+
+  function eatContentTypeParameter(text) {
+    // see https://tools.ietf.org/html/rfc2045#section-5.1
+    // here, it is not the strict rfc, this one handles the content type of `data: text/plain  ;=; charset = utf-8 ;base64,AAA=`
+    // NB: should never return null
+    //   content-type-parameter := attribute "=" value -> here, it's more: attribute ?("=" ?value)
+    //     attribute := token
+    //     value := token / quoted-string
+    //       token /[a-zA-Z0-9!#\$%&'\*\+\-\.\^_`\{\|\}~]+/  // US-ASCII CHARS except ()<>@,;:\"/[]?=
+    //       quoted-string /"(?:[^\\"]|\\[^])*"/ -> for jslint, [^] is not accepted, we can use [\s\S] (following RFC it should be [\x00-\x7F])
+    /*jslint regexp: true */
+    var res = (/^([a-zA-Z0-9!#\$%&'\*\+\-\.\^_`\{\|\}~]*)(?:\s*=\s*([a-zA-Z0-9!#\$%&'\*\+\-\.\^_`\{\|\}~]*|"(?:[^\\"]|\\[\s\S])*"))?/).exec(text);
+    //if (res) {
+    return {
+      index: 0,
+      input: text,
+      match: res[0],
+      attribute: res[1],
+      value: res[2] === undefined ? null : (res[2][0] === "\"" ? res[2].slice(1, -1).replace(/\\([\s\S])/g, "$1") : res[2])
+    };
+    //}
+    //return null;
+  }
+  env.eatContentTypeParameter = eatContentTypeParameter;
+
+  function eatContentType(text) {
+    // Returns an object containing all content-type information
+    // Ex:
+    // {
+    //   input: "text/plain;charset=utf-8;base64,ABCDEFGH", // is the actual `contentType` parameter
+    //   match: "text/plain;charset=utf-8;base64", // is what the parser matched
+    //   mimetype: "text/plain", // is the mimetype
+    //   params: { // is the content type parameters
+    //     charset: "utf-8",
+    //     base64: null
+    //   }
+    // }
+    // NB: should never return null
+    // see https://tools.ietf.org/html/rfc2045#section-5.1
+    //   content-type := mimetype content-type-parameters
+    //     content-type-parameters := / content-type-parameter content-type-parameters
+    /*jslint ass: true */
+    // mimetype
+    var res = env.eatMimeType(text), tmp, whitespaceMatch;
+    if (res === null) {
+      res = {input: text, match: ""};
+    } else {
+      text = text.slice(res.match.length);
+      res.mimetype = res.match;
+    }
+    res.params = {};
+    // whitespaces
+    tmp = (/^\s*/).exec(text);
+    text = text.slice(tmp[0].length);
+    res.match += tmp[0];
+    while (true) {
+      // semicolon whitespaces
+      if ((tmp = (/^(?:;\s*)+/).exec(text)) === null) { break; }
+      text = text.slice(tmp[0].length);
+      whitespaceMatch = tmp[0];
+      // content-type-parameter
+      if ((tmp = env.eatContentTypeParameter(text)) === null) { break; }
+      text = text.slice(tmp.match.length);
+      res.match += whitespaceMatch + tmp.match;
+      res.params[tmp.attribute] = tmp.value;
+      // whitespaces
+      tmp = (/^\s*/).exec(text);
+      text = text.slice(tmp[0].length);
+      res.match += tmp[0];
+    }
+    return res;
+  }
+  env.eatContentType = eatContentType;
+
   //////////////////////////////////////////////////////////////////////
 
   return env;
