@@ -516,6 +516,52 @@
   }
   env.setDefaultObjectProperties = setDefaultObjectProperties;
 
+  ////////////////////////
+  // Array manipulation //
+  ////////////////////////
+
+  function ArrayWriter(array) {
+    // Usage:
+    //   array = [1, 2];
+    //   arrayWriter = new ArrayWriter(array);
+    //   arrayWriter.write([3]);
+    //   arrayWriter.index = 2;
+    //   arrayWriter.write([4, 5]);
+    //   console.log(arrayWriter.array); // output: [3, 2, 4, 5]
+    this.array = array || [];
+    this.index = 0;
+  }
+  ArrayWriter.prototype.write = function (array) {
+    //     write(array iterable) writenCount int
+    /*jslint plusplus: true */
+    var i = 0, l = array.length, it = this.array, writenCount = 0;
+    while (i < l) {
+      it[this.index] = array[i];
+      if (this.index >= it.length) { break; }
+      this.index += 1;
+      i += 1;
+    }
+    return i;
+  };
+  env.ArrayWriter = ArrayWriter;
+  function newArrayWriter(array) { return new ArrayWriter(array); }
+  env.newArrayWriter = newArrayWriter;
+
+  function ArrayReader(array) {
+    this.array = array || [];
+    this.index = 0;
+  }
+  ArrayReader.prototype.read = function (count) {
+    //     read(count int) iterable
+    /*jslint plusplus: true */
+    var res = this.array.slice(this.index, this.index + count);
+    this.index += res.length;
+    return res;
+  };
+  env.ArrayReader = ArrayReader;
+  function newArrayReader(array) { return new ArrayReader(array); }
+  env.newArrayReader = newArrayReader;
+
   ///////////////////////////
   // function manipulation //
   ///////////////////////////
