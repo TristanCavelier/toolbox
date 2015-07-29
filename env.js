@@ -516,52 +516,6 @@
   }
   env.setDefaultObjectProperties = setDefaultObjectProperties;
 
-  ////////////////////////
-  // Array manipulation //
-  ////////////////////////
-
-  function ArrayWriter(array) {
-    // Usage:
-    //   array = [1, 2];
-    //   arrayWriter = new ArrayWriter(array);
-    //   arrayWriter.write([3]);
-    //   arrayWriter.index = 2;
-    //   arrayWriter.write([4, 5]);
-    //   console.log(arrayWriter.array); // output: [3, 2, 4, 5]
-    this.array = array || [];
-    this.index = 0;
-  }
-  ArrayWriter.prototype.write = function (array) {
-    //     write(array iterable) writenCount int
-    /*jslint plusplus: true */
-    var i = 0, l = array.length, it = this.array, writenCount = 0;
-    while (i < l) {
-      it[this.index] = array[i];
-      if (this.index >= it.length) { break; }
-      this.index += 1;
-      i += 1;
-    }
-    return i;
-  };
-  env.ArrayWriter = ArrayWriter;
-  function newArrayWriter(array) { return new ArrayWriter(array); }
-  env.newArrayWriter = newArrayWriter;
-
-  function ArrayReader(array) {
-    this.array = array || [];
-    this.index = 0;
-  }
-  ArrayReader.prototype.read = function (count) {
-    //     read(count int) iterable
-    /*jslint plusplus: true */
-    var res = this.array.slice(this.index, this.index + count);
-    this.index += res.length;
-    return res;
-  };
-  env.ArrayReader = ArrayReader;
-  function newArrayReader(array) { return new ArrayReader(array); }
-  env.newArrayReader = newArrayReader;
-
   ///////////////////////////
   // function manipulation //
   ///////////////////////////
@@ -649,6 +603,114 @@
     return [strings.slice(1, -1).join("/").replace(/\\/g, "\\\\"), strings[strings.length - 1]];
   }
   env.regexpToStrings = regexpToStrings;
+
+  ////////////
+  // Stream //
+  ////////////
+
+  function BufferWriter(buffer) {
+    // Usage:
+    //   array = [1, 2];
+    //   bufferWriter = new BufferWriter(array);
+    //   bufferWriter.write([3, 4]); // returns: 2
+    //   bufferWriter.index = 1;
+    //   bufferWriter.write([5]); // returns: 1
+    //   bufferWriter.buffer; // returns: [1, 5, 3, 4]
+    this.buffer = buffer || [];
+    this.index = this.buffer.length;
+  }
+  BufferWriter.prototype.buffer = null;
+  BufferWriter.prototype.index = 0;
+  BufferWriter.prototype.write = function (array) {
+    //     write(array iterable) writenCount int
+    /*jslint plusplus: true */
+    var i = 0, l = array.length, buffer = this.buffer;
+    while (i < l) { buffer[this.index++] = array[i++]; }
+    return i;
+  };
+  env.BufferWriter = BufferWriter;
+  function newBufferWriter(buffer) { return new BufferWriter(buffer); }
+  env.newBufferWriter = newBufferWriter;
+
+  function ArrayWriter(array) {
+    // Usage:
+    //   array = [1, 2, 3];
+    //   arrayWriter = new ArrayWriter(array);
+    //   arrayWriter.write([4]); // returns: 1
+    //   arrayWriter.index = 2;
+    //   arrayWriter.write([5, 6]); // returns: 1
+    //   arrayWriter.array; // returns: [4, 2, 5]
+    this.array = array;
+  }
+  ArrayWriter.prototype.array = null;
+  ArrayWriter.prototype.index = 0;
+  ArrayWriter.prototype.write = function (array) {
+    //     write(array iterable) writenCount int
+    /*jslint plusplus: true */
+    var i = 0, l = array.length, buffer = this.array, bl = buffer.length;
+    while (i < l && this.index < bl) { buffer[this.index++] = array[i++]; }
+    return i;
+  };
+  env.ArrayWriter = ArrayWriter;
+  function newArrayWriter(array) { return new ArrayWriter(array); }
+  env.newArrayWriter = newArrayWriter;
+
+  function ArrayReader(array) {
+    // Usage:
+    //   array = [1, 2, 3];
+    //   arrayReader = new ArrayReader(array);
+    //   arrayReader.read(2); // returns: [1, 2]
+    //   arrayReader.index = 1;
+    //   arrayReader.read(1); // returns: [2]
+    //   arrayReader.read(2); // returns: [3]
+    this.array = array || [];
+  }
+  ArrayReader.prototype.array = null;
+  ArrayReader.prototype.index = 0;
+  ArrayReader.prototype.read = function (count) {
+    //     read([count int]) iterable
+    // `count === undefined` means `count === Infinity`
+    /*jslint plusplus: true */
+    var res = [], i = 0, buffer = this.array, bl = buffer.length;
+    if (count === undefined) {
+      while (this.index < bl) { res[i++] = buffer[this.index++]; }
+    } else {
+      while (i < count && this.index < bl) { res[i++] = buffer[this.index++]; }
+    }
+    return res;
+  };
+  env.ArrayReader = ArrayReader;
+  function newArrayReader(array) { return new ArrayReader(array); }
+  env.newArrayReader = newArrayReader;
+
+  function StringReader(string) {
+    // Usage:
+    //   string = "abc";
+    //   stringReader = new StringReader(string);
+    //   stringReader.read(2); // returns: "ab"
+    //   stringReader.index = 1;
+    //   stringReader.read(1); // returns: "b"
+    //   stringReader.read(2); // returns: "c"
+    this.string = string || "";
+  }
+  StringReader.prototype.string = "";
+  StringReader.prototype.index = 0;
+  StringReader.prototype.read = function (count) {
+    //     read([count int]) iterable
+    // `count === undefined` means `count === Infinity`
+    /*jslint plusplus: true */
+    var res;
+    if (count === undefined) {
+      res = this.string.slice(this.index);
+    } else {
+      res = this.string.slice(this.index, this.index + count);
+    }
+    this.index += res.length;
+    return res;
+  };
+  env.StringReader = StringReader;
+  function newStringReader(string) { return new StringReader(string); }
+  env.newStringReader = newStringReader;
 
   ////////////////////////
   // Parsers and eaters //
