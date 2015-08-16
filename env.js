@@ -490,33 +490,22 @@
   /////////////////////////
 
   function copyObjectProperties(dst, src) {
-    /*jslint forin: true */
-    var k;
-    for (k in src) {
+    /*jslint plusplus: true */
+    var i = 0, keys = Object.keys(src), l = keys.length, k;
+    while (i < l) {
+      k = keys[i++];
       dst[k] = src[k];
     }
     return dst;
   }
   env.copyObjectProperties = copyObjectProperties;
 
-  function copyObjectOwnProperties(dst, src) {
-    var k;
-    for (k in src) {
-      if (src.hasOwnProperty(k)) {
-        dst[k] = src[k];
-      }
-    }
-    return dst;
-  }
-  env.copyObjectOwnProperties = copyObjectOwnProperties;
-
   function setDefaultObjectProperties(dst, src) {
-    /*jslint forin: true */
-    var k;
-    for (k in src) {
-      if (dst[k] === undefined) {
-        dst[k] = src[k];
-      }
+    /*jslint plusplus: true */
+    var i = 0, keys = Object.keys(src), l = keys.length, k;
+    while (i < l) {
+      k = keys[i++];
+      if (dst[k] === undefined) { dst[k] = src[k]; }
     }
     return dst;
   }
