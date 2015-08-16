@@ -44,12 +44,18 @@
 
   if (typeof env.Promise === "function") {
     env.setImmediate = function (fn) {
-      env.Promise.resolve().then(fn.apply.bind(fn, null, [].slice(arguments, 1)));
+      /*jslint plusplus: true */
+      var l = arguments.length - 1, i = 0, args = new Array(l);
+      while (i < l) { args[i] = arguments[++i]; }
+      env.Promise.resolve().then(fn.apply.bind(fn, null, args));
     };
   } else {
     env.setImmediate = function (fn) {
       // XXX find something else like mutation observer
-      env.setTimeout(fn.apply.bind(fn, null, [].slice(arguments, 1)));
+      /*jslint plusplus: true */
+      var l = arguments.length - 1, i = 0, args = new Array(l);
+      while (i < l) { args[i] = arguments[++i]; }
+      env.setTimeout(fn.apply.bind(fn, null, args));
     };
   }
 
