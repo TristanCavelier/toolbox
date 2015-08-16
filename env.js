@@ -610,9 +610,9 @@
   }
   env.regexpToStrings = regexpToStrings;
 
-  ////////////
-  // Stream //
-  ////////////
+  /////////////////////////////////////
+  // Synchronous Writers and Readers //
+  /////////////////////////////////////
 
   function BufferWriter(buffer) {
     // Usage:
@@ -635,7 +635,7 @@
     return i;
   };
   env.BufferWriter = BufferWriter;
-  function newBufferWriter(buffer) { return new BufferWriter(buffer); }
+  function newBufferWriter(buffer) { return new env.BufferWriter(buffer); }
   env.newBufferWriter = newBufferWriter;
 
   function ArrayWriter(array) {
@@ -658,7 +658,7 @@
     return i;
   };
   env.ArrayWriter = ArrayWriter;
-  function newArrayWriter(array) { return new ArrayWriter(array); }
+  function newArrayWriter(array) { return new env.ArrayWriter(array); }
   env.newArrayWriter = newArrayWriter;
 
   function ArrayReader(array) {
@@ -685,8 +685,22 @@
     }
     return res;
   };
+  ArrayReader.prototype.readInto = function (array) {
+    //     readInto(array) int
+    //
+    //     buf = [], count;
+    //     do {
+    //       buf.length = 1024;
+    //       count = buf.length = r.readInto(buf);
+    //       w.write(buf);
+    //     } while (count);
+    /*jslint plusplus: true */
+    var i = 0, count = array.length, a = this.array, al = this.array.length;
+    while (i < count && this.index < al) { array[i++] = a[this.index++]; }
+    return i;
+  };
   env.ArrayReader = ArrayReader;
-  function newArrayReader(array) { return new ArrayReader(array); }
+  function newArrayReader(array) { return new env.ArrayReader(array); }
   env.newArrayReader = newArrayReader;
 
   function StringReader(string) {
@@ -715,7 +729,7 @@
     return res;
   };
   env.StringReader = StringReader;
-  function newStringReader(string) { return new StringReader(string); }
+  function newStringReader(string) { return new env.StringReader(string); }
   env.newStringReader = newStringReader;
 
   ////////////////////////
