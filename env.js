@@ -9,8 +9,6 @@
       To Public License, Version 2, as published by Sam Hocevar. See
       http://www.wtfpl.net/ for more details. */
 
-  /*jslint indent: 2, nomen: true */
-
   var env = {};
 
   if (typeof exportKey !== "string") { exportKey = "env"; }
@@ -548,7 +546,7 @@
           }
           return {"value": value};
         } catch (e) {
-          return g["throw"](e);
+          return g.throw(e);
         }
       }
       g = {
