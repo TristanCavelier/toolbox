@@ -181,10 +181,7 @@
     return new env.PromisePolyfill(executor);
   }
   env.newPromisePolyfill = newPromisePolyfill;
-
-  if (env.Promise === undefined) {
-    env.Promise = env.PromisePolyfill;
-  }
+  if (env.Promise === null) { env.Promise = env.PromisePolyfill; }
 
   //////////////////////////
   // Promise Manipulation //
