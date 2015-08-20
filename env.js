@@ -25,10 +25,13 @@
   ////////////
 
   (function () {
-    /*global setTimeout, clearTimeout, Promise */
+    /*global setTimeout, clearTimeout, Promise
+             btoa, atob */
     env.setTimeout = typeof setTimeout === "function" ? setTimeout.bind(null) : null;
     env.clearTimeout = typeof clearTimeout === "function" ? clearTimeout.bind(null) : null;
     env.Promise = typeof Promise === "function" ? Promise : null;
+    env.encodeBinaryStringToBase64 = typeof btoa === "function" ? btoa.bind(null) : null;
+    env.decodeBase64ToBinaryString = typeof atob === "function" ? atob.bind(null) : null;
   }());
 
   function newPromise(executor) {
@@ -811,6 +814,95 @@
     return res;
   }
   env.eatContentType = eatContentType;
+
+  //////////////
+  // Encoders //
+  //////////////
+
+  function encodeBinaryStringToBase64Polyfill(binaryString) {
+    /*jslint bitwise: true */
+    var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/", i = 0, l = binaryString.length, m = l % 3, lm = l - m, res = "", a, b, c;
+    for (i = 0; i < lm; i += 3) {
+      a = binaryString.charCodeAt(i);
+      b = binaryString.charCodeAt(i + 1);
+      c = binaryString.charCodeAt(i + 2);
+      if (a > 0xFF || b > 0xFF || c > 0xFF) {
+        a = new Error("String contains an invalid character");
+        a.name = "InvalidCharacterError";
+        throw a;
+      }
+      res += chars[(a >>> 2) & 0x3F] +
+        chars[((a << 4) & 0x30) | ((b >>> 4) & 0xF)] +
+        chars[((b << 2) & 0x3C) | ((c >>> 6) & 0x3)] +
+        chars[(c & 0x3F)];
+    }
+    if (m === 2) {
+      a = binaryString.charCodeAt(i);
+      b = binaryString.charCodeAt(i + 1);
+      if (a > 0xFF || b > 0xFF) {
+        a = new Error("String contains an invalid character");
+        a.name = "InvalidCharacterError";
+        throw a;
+      }
+      res += chars[(a >>> 2) & 0x3F] +
+        chars[((a << 4) & 0x30) | ((b >>> 4) & 0xF)] +
+        chars[((b << 2) & 0x3C)] + "=";
+    } else if (m === 1) {
+      a = binaryString.charCodeAt(i);
+      if (a > 0xFF) {
+        a = new Error("String contains an invalid character");
+        a.name = "InvalidCharacterError";
+        throw a;
+      }
+      res += chars[(a >>> 2) & 0x3F] + chars[((a << 4) & 0x30)] + "==";
+    }
+    return res;
+  }
+  env.encodeBinaryStringToBase64Polyfill = encodeBinaryStringToBase64Polyfill;
+  if (env.encodeBinaryStringToBase64 === null) { env.encodeBinaryStringToBase64 = env.encodeBinaryStringToBase64Polyfill; }
+
+  function decodeBase64ToBinaryStringPolyfill(base64) {
+    /*jslint bitwise: true, continue: true */
+    // 43=62,47=63,48-57=x+4,65-90=x-65,97-122=x-71
+    function charCodeToByte(chr) {
+      if (chr >= 65 && chr <= 90) { return chr - 65; }
+      if (chr >= 97 && chr <= 122) { return chr - 71; }
+      if (chr >= 48 && chr <= 57) { return chr + 4; }
+      if (chr === 43) { return 62; }
+      if (chr === 47) { return 63; }
+      var e = new Error("Failed to execute 'decodeBase64ToBinaryStringPolyfill': The string to be decoded is not correctly encoded.")
+      e.name = "InvalidCharacterError";
+      throw e;
+    }
+    var l = base64.length, res = "", chr, a, b, i;
+    for (i = 0; i < l; i += 4) {
+      // char1
+      chr = base64.charCodeAt(i);
+      b = charCodeToByte(chr) << 2;
+      // char2
+      chr = base64.charCodeAt(i + 1);
+      a = charCodeToByte(chr);
+      b |= a >>> 4;
+      res += String.fromCharCode(b);
+      // char3
+      chr = base64.charCodeAt(i + 2);
+      if (chr === undefined) { continue; }
+      if (chr === 61) {
+        if (base64.charCodeAt(i + 3) === 61) { continue; }
+        throw charCodeToByte(null);
+      }
+      b = (a << 4) & 0xFF;
+      a = charCodeToByte(chr);
+      res += String.fromCharCode(b | (a >>> 2));
+      // char4
+      chr = base64.charCodeAt(i + 3);
+      if (chr === 61) { continue; }
+      res += String.fromCharCode(((a << 6) & 0xFF) | charCodeToByte(chr));
+    }
+    return res;
+  }
+  env.decodeBase64ToBinaryStringPolyfill = decodeBase64ToBinaryStringPolyfill;
+  if (env.decodeBase64ToBinaryString === null) { env.decodeBase64ToBinaryString = env.decodeBase64ToBinaryStringPolyfill; }
 
   //////////////////////////////////////////////////////////////////////
 
