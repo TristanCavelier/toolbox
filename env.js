@@ -311,6 +311,26 @@
   }
   env.textToHtmlElements = textToHtmlElements;
 
+  function fitTextareaToTextHeightListener(event) {
+    // var textarea = document.querySelector("textarea");
+    // textarea.addEventListener("keydown", env.asyncFitTextareaToTextHeightListener, false);
+    // env.fitTextareaToTextHeightListener({target: textarea});
+    var layout = document.createElement("div"), textarea = event.target;
+    layout.style.position = "absolute";
+    layout.style.boxSizing = "border-box";
+    layout.style.width = "1px";
+    layout.style.height = textarea.scrollHeight + "px";
+    textarea.parentNode.insertBefore(layout, textarea);
+    textarea.style.height = "1em";
+    textarea.style.height = textarea.scrollHeight + "px";
+    layout.remove();
+  }
+  env.fitTextareaToTextHeightListener = fitTextareaToTextHeightListener;
+  function asyncFitTextareaToTextHeightListener(event) {
+    setTimeout(fitTextareaToTextHeightListener, 0, event);
+  }
+  env.asyncFitTextareaToTextHeightListener = asyncFitTextareaToTextHeightListener;
+
   //////////
   // HTTP //
   //////////
