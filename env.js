@@ -518,6 +518,22 @@
   }
   env.copyObjectProperties = copyObjectProperties;
 
+  function mixObjectProperties(dst, src) {
+    /*jslint plusplus: true */
+    var i = 0, keys = Object.keys(src), l = keys.length, k;
+    while (i < l) {
+      k = keys[i++];
+      if (dst[k] !== undefined) { throw new Error("mixObjectProperties: property `" + k + "` already defined"); }
+    }
+    i = 0;
+    while (i < l) {
+      k = keys[i++];
+      dst[k] = src[k];
+    }
+    return dst;
+  }
+  env.mixObjectProperties = mixObjectProperties;
+
   function setDefaultObjectProperties(dst, src) {
     /*jslint plusplus: true */
     var i = 0, keys = Object.keys(src), l = keys.length, k;
