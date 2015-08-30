@@ -34,7 +34,7 @@
     env.decodeBase64ToBinaryString = typeof atob === "function" ? atob.bind(null) : null;
   }());
 
-  env.newPromise = function () { var c = env.Promise, o = Object.create(c); c.apply(o, arguments); return o; }
+  env.newPromise = function (executor) { return new env.Promise(executor); };
 
   //////////////
   // Polyfill //
@@ -177,7 +177,7 @@
     return PromisePolyfill;
   }());
 
-  env.newPromisePolyfill = function () { var c = env.PromisePolyfill, o = Object.create(c); c.apply(o, arguments); return o; };
+  env.newPromisePolyfill = function () { var c = env.PromisePolyfill, o = Object.create(c.prototype); c.apply(o, arguments); return o; };
   if (env.Promise === null) { env.Promise = env.PromisePolyfill; }
 
   //////////////////////////
@@ -672,7 +672,7 @@
     return i;
   };
   env.BufferWriter = BufferWriter;
-  env.newBufferWriter = function () { var c = env.BufferWriter, o = Object.create(c); c.apply(o, arguments); return o; };
+  env.newBufferWriter = function () { var c = env.BufferWriter, o = Object.create(c.prototype); c.apply(o, arguments); return o; };
 
   function ArrayWriter(array) {
     // Usage:
@@ -694,7 +694,7 @@
     return i;
   };
   env.ArrayWriter = ArrayWriter;
-  env.newArrayWriter = function () { var c = env.ArrayWriter, o = Object.create(c); c.apply(o, arguments); return o; };
+  env.newArrayWriter = function () { var c = env.ArrayWriter, o = Object.create(c.prototype); c.apply(o, arguments); return o; };
 
   function ArrayReader(array) {
     // Usage:
@@ -735,7 +735,7 @@
     return i;
   };
   env.ArrayReader = ArrayReader;
-  env.newArrayReader = function () { var c = env.ArrayReader, o = Object.create(c); c.apply(o, arguments); return o; };
+  env.newArrayReader = function () { var c = env.ArrayReader, o = Object.create(c.prototype); c.apply(o, arguments); return o; };
 
   function StringReader(string) {
     // Usage:
@@ -763,7 +763,7 @@
     return res;
   };
   env.StringReader = StringReader;
-  env.newStringReader = function () { var c = env.StringReader, o = Object.create(c); c.apply(o, arguments); return o; };
+  env.newStringReader = function () { var c = env.StringReader, o = Object.create(c.prototype); c.apply(o, arguments); return o; };
 
   ////////////////////////
   // Parsers and eaters //
