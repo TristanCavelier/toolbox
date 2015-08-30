@@ -34,10 +34,7 @@
     env.decodeBase64ToBinaryString = typeof atob === "function" ? atob.bind(null) : null;
   }());
 
-  function newPromise(executor) {
-    return new env.Promise(executor);
-  }
-  env.newPromise = newPromise;
+  env.newPromise = function () { var c = env.Promise, o = Object.create(c); c.apply(o, arguments); return o; }
 
   //////////////
   // Polyfill //
@@ -180,10 +177,7 @@
     return PromisePolyfill;
   }());
 
-  function newPromisePolyfill(executor) {
-    return new env.PromisePolyfill(executor);
-  }
-  env.newPromisePolyfill = newPromisePolyfill;
+  env.newPromisePolyfill = function () { var c = env.PromisePolyfill, o = Object.create(c); c.apply(o, arguments); return o; };
   if (env.Promise === null) { env.Promise = env.PromisePolyfill; }
 
   //////////////////////////
@@ -622,6 +616,26 @@
   }
   env.functionsToGenerator = functionsToGenerator;
 
+  //////////////////////////////
+  // Constructor manipulation //
+  //////////////////////////////
+
+  env.new = function (Constructor) {
+    /*jslint plusplus: true */
+    var l = arguments.length - 1, i = 0, args = new Array(l);
+    while (i < l) { args[i] = arguments[++i]; }
+    i = Object.create(Constructor.prototype);
+    Constructor.apply(i, args);
+    return i;
+  };
+
+  function staticMethodNew() {
+    var o = Object.create(this);
+    this.apply(o, arguments);
+    return o;
+  }
+  env.staticMethodNew = staticMethodNew;
+
   /////////////////////////
   // Regexp manipulation //
   /////////////////////////
@@ -658,8 +672,7 @@
     return i;
   };
   env.BufferWriter = BufferWriter;
-  function newBufferWriter(buffer) { return new env.BufferWriter(buffer); }
-  env.newBufferWriter = newBufferWriter;
+  env.newBufferWriter = function () { var c = env.BufferWriter, o = Object.create(c); c.apply(o, arguments); return o; };
 
   function ArrayWriter(array) {
     // Usage:
@@ -681,8 +694,7 @@
     return i;
   };
   env.ArrayWriter = ArrayWriter;
-  function newArrayWriter(array) { return new env.ArrayWriter(array); }
-  env.newArrayWriter = newArrayWriter;
+  env.newArrayWriter = function () { var c = env.ArrayWriter, o = Object.create(c); c.apply(o, arguments); return o; };
 
   function ArrayReader(array) {
     // Usage:
@@ -723,8 +735,7 @@
     return i;
   };
   env.ArrayReader = ArrayReader;
-  function newArrayReader(array) { return new env.ArrayReader(array); }
-  env.newArrayReader = newArrayReader;
+  env.newArrayReader = function () { var c = env.ArrayReader, o = Object.create(c); c.apply(o, arguments); return o; };
 
   function StringReader(string) {
     // Usage:
@@ -752,8 +763,7 @@
     return res;
   };
   env.StringReader = StringReader;
-  function newStringReader(string) { return new env.StringReader(string); }
-  env.newStringReader = newStringReader;
+  env.newStringReader = function () { var c = env.StringReader, o = Object.create(c); c.apply(o, arguments); return o; };
 
   ////////////////////////
   // Parsers and eaters //
