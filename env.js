@@ -641,7 +641,8 @@
   function regexpToStrings(regexp) {
     // regexpToStrings(/hello/g) -> ["hello", "g"]
     var strings = regexp.toString().split("/");
-    return [strings.slice(1, -1).join("/").replace(/\\/g, "\\\\"), strings[strings.length - 1]];
+    return [strings.slice(1, -1).join("/"), strings[strings.length - 1]];
+    //return [strings.slice(1, -1).join("/").replace(/\\\//g, "/"), strings[strings.length - 1]];
   }
   env.regexpToStrings = regexpToStrings;
 
