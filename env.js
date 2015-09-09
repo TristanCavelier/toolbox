@@ -310,19 +310,17 @@
     // textarea.addEventListener("keydown", env.asyncFitTextareaToTextHeightListener, false);
     // env.fitTextareaToTextHeightListener({target: textarea});
     var layout = document.createElement("div"), textarea = event.target;
-    layout.style.position = "absolute";
+    layout.style.display = "inline-block";
     layout.style.boxSizing = "border-box";
     layout.style.width = "1px";
-    layout.style.height = textarea.scrollHeight + "px";
+    layout.style.height = (textarea.scrollHeight + textarea.offsetHeight - textarea.clientHeight) + "px";
     textarea.parentNode.insertBefore(layout, textarea);
     textarea.style.height = "1em";
-    textarea.style.height = textarea.scrollHeight + "px";
+    textarea.style.height = (textarea.scrollHeight + textarea.offsetHeight - textarea.clientHeight) + "px";
     layout.remove();
   }
   env.fitTextareaToTextHeightListener = fitTextareaToTextHeightListener;
-  function asyncFitTextareaToTextHeightListener(event) {
-    setTimeout(fitTextareaToTextHeightListener, 0, event);
-  }
+  function asyncFitTextareaToTextHeightListener(event) { env.setImmediate(fitTextareaToTextHeightListener, event); }
   env.asyncFitTextareaToTextHeightListener = asyncFitTextareaToTextHeightListener;
 
   //////////
