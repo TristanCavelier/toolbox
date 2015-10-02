@@ -194,76 +194,122 @@
   env.Deferred = Deferred;
   env.newDeferred = function () { var c = env.Deferred, o = Object.create(c.prototype); c.apply(o, arguments); return o; };
 
-  function newCancellableDeferred() {
-    // Simple example:
-    //   var cd = env.newCancellableDeferred()
-    //   cd.oncancel = function () { cd.reject("CANCELLED"); };
-    //   ...do asynchronous code here...
-    //   return cd.promise;
-
-    var it = {};
-    it.promise = env.newPromise(function (resolve, reject) {
-      it.resolve = resolve;
-      it.reject = reject;
-    });
-    it.promise.cancel = function () {
-      try { it.oncancel(); } catch (ignore) {}
-      return this;
-    };
-    return it;
-  }
-  env.newCancellableDeferred = newCancellableDeferred;
-
-  function spawnPromise(generator) {
-    /**
-     *     spawnPromise(generator): Promise< returned_value >
-     *
-     * Use generator function to do asynchronous operations sequentialy using
-     * `yield` operator.
-     *
-     *     spawn(function* () {
-     *       try {
-     *         var config = yield getConfig();
-     *         config.enableSomething = true;
-     *         yield sleep(1000);
-     *         yield putConfig(config);
-     *       } catch (e) {
-     *         console.error(e);
-     *       }
-     *     });
-     *
-     * @param  {Function} generator A generator function.
-     * @return {Promise} A new promise
-     */
-    return new env.Promise(function (resolve, reject) {
-      var promise, g = generator(), prev, next = {};
-      function rec(method) {
-        try {
-          next = g[method](prev);
-        } catch (e) {
-          return reject(e);
+  function Task(generator) {
+    var it = this;
+    this["[[TaskPromise]]"] = env.newPromise(function (resolve, reject) {
+      var g = generator();
+      function rec(method, prev) {
+        delete it["[[TaskSubPromise]]"];
+        if (it["[[TaskCancelled]]"]) { return reject(new Error("Cancelled")); }
+        if (it["[[TaskPaused]]"]) {
+          it["[[TaskPaused]]"] = function () { rec(method, prev); };
+          return;
         }
-        if (next.done) {
-          return resolve(next.value);
+        var next;
+        try { next = g[method](prev); } catch (e) { return reject(e); }
+        if (next.done) { return resolve(next.value); }
+        it["[[TaskSubPromise]]"] = next = next.value;
+        if (!next || typeof next.then !== "function") {
+          it["[[TaskSubPromise]]"] = next = env.Promise.resolve(next);
         }
-        promise = next.value;
-        if (!promise || typeof promise.then !== "function") {
-          // The value is not a thenable. However, the user used `yield`
-          // anyway. It means he wants to left hand to another process.
-          promise = env.Promise.resolve(promise);
-        }
-        return promise.then(function (value) {
-          prev = value;
-          rec("next");
+        if (it["[[TaskCancelled]]"]) { try { next.cancel(); } catch (ignore) {} }
+        if (it["[[TaskPaused]]"]) { try { next.pause(); } catch (ignore) {} }
+        return next.then(function (value) {
+          rec("next", value);
         }, function (reason) {
-          prev = reason;
-          rec("throw");
+          rec("throw", reason);
         });
       }
       rec("next");
     });
   }
-  env.spawnPromise = spawnPromise;
+  Task.prototype["[[TaskCancelled]]"] = false;
+  Task.prototype["[[TaskPaused]]"] = null;
+  Task.prototype.cancel = function () {
+    this["[[TaskCancelled]]"] = true;
+    try { this["[[TaskSubPromise]]"].cancel(); } catch (ignore) {}
+    return this;
+  };
+  Task.prototype.pause = function () {
+    if (this["[[TaskPaused]]"]) { return; }
+    this["[[TaskPaused]]"] = true;
+    try { this["[[TaskSubPromise]]"].pause(); } catch (ignore) {}
+    return this;
+  };
+  Task.prototype.resume = function () {
+    var paused = this["[[TaskPaused]]"];
+    if (paused) {
+      env.Promise.resolve().then(paused).catch(function () { return; });
+      delete this["[[TaskPaused]]"];
+      try { this["[[TaskSubPromise]]"].resume(); } catch (ignore) {}
+    }
+    return this;
+  };
+  Task.prototype.then = function () {
+    var p = this["[[TaskPromise]]"];
+    return p.then.apply(p, arguments);
+  };
+  Task.prototype.catch = function () {
+    var p = this["[[TaskPromise]]"];
+    return p.catch.apply(p, arguments);
+  };
+  env.Task = Task;
+  env.spawn = env.newTask = function () { var c = env.Task, o = Object.create(c.prototype); c.apply(o, arguments); return o; };
+
+  function TaskSequence(queue) {
+    var it = this;
+    this["[[TaskPromise]]"] = env.newPromise(function (resolve, reject) {
+      var i = 0;
+      function rec(method, prev) {
+        delete it["[[TaskSubPromise]]"];
+        if (it["[[TaskCancelled]]"]) { return reject(new Error("Cancelled")); }
+        if (it["[[TaskPaused]]"]) {
+          it["[[TaskPaused]]"] = function () { rec(method, prev); };
+          return;
+        }
+        var next, callback, l = queue.length;
+        if (method) {
+          while (!callback) {
+            if (i >= l) { return reject(prev); }
+            if (queue[i] && typeof queue[i][1] === "function") { callback = queue[i][1]; }
+            i += 1;
+          }
+        } else {
+          while (!callback) {
+            if (i >= l) { return resolve(prev); }
+            if (typeof queue[i] === "function") {
+              callback = queue[i];
+            } else if (queue[i] && typeof queue[i][0] === "function") {
+              callback = queue[i][0];
+            }
+            i += 1;
+          }
+        }
+        try {
+          method = "resolve";
+          next = callback(prev);
+        } catch (e) {
+          method = "reject";
+          next = e;
+        }
+        it["[[TaskSubPromise]]"] = next;
+        if (!next || typeof next.then !== "function") {
+          it["[[TaskSubPromise]]"] = next = env.Promise[method](next);
+        }
+        if (it["[[TaskCancelled]]"]) { try { next.cancel(); } catch (ignore) {} }
+        if (it["[[TaskPaused]]"]) { try { next.pause(); } catch (ignore) {} }
+        return next.then(function (value) {
+          rec("", value);
+        }, function (reason) {
+          rec("r", reason);
+        });
+      }
+      rec("");
+    });
+  }
+  TaskSequence.prototype = Object.create(Task.prototype);
+  env.TaskSequence = TaskSequence;
+  env.seq = env.newTaskSequence = function () { var c = env.TaskSequence, o = Object.create(c.prototype); c.apply(o, arguments); return o; };
 
   ////////////
   // Random //
