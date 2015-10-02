@@ -427,10 +427,10 @@
   }
   env.textToHttpHeadersObject = textToHttpHeadersObject;
 
-  function newXmlHttpRequestPromise(param) {
+  function newXmlHttpRequestTask(param) {
     /**
-     *    newXmlHttpRequestPromise({url: location, responseType: "text"}).then(propertyGetter("data"));
-     *    newXmlHttpRequestPromise({url: location}).then(propertyGetter("Content-Length"));
+     *    newXmlHttpRequestTask({url: location, responseType: "text"}).then(propertyGetter("response"));
+     *    newXmlHttpRequestTask({url: location}).then(propertyGetter("headers", "Content-Length"));
      *
      * Send request with XHR and return a promise. xhr.onload: The promise is
      * resolved when the status code is lower than 400 with a forged response
@@ -446,19 +446,24 @@
      * @param  {Any} [param.data] The data to send
      * @param  {Boolean} [param.withCredentials] Tell the browser to use
      *   credentials
+     * @param  {String} [param.username] The login username
+     * @param  {String} [param.password] The login password
      * @param  {Object} [param.xhrFields] The other xhr fields to fill
      * @param  {Boolean} [param.getEvent] Tell the method to return the
      *   response event.
      * @param  {Function} [param.beforeSend] A function called just before the
      *   send request. The first parameter of this function is the XHR object.
-     * @return {CancellablePromise<Object>} Response object is like { data: .., header1: ..,
-     *   header2: .., ... }
+     * @return {Task<XMLHttpRequest>} The XHR
      */
 
     /*global XMLHttpRequest */
-    var d = env.newCancellableDeferred(), xhr = new XMLHttpRequest(), k;
-    d.oncancel = function () { xhr.abort(); };
-    xhr.open((param.method || "GET").toUpperCase(), param.url, true);
+    var d = env.newDeferred(), xhr = new XMLHttpRequest(), k, i, l, a;
+    d.promise.cancel = function () { xhr.abort(); };
+    if (param.username) {
+      xhr.open((param.method || "GET").toUpperCase(), param.url, true);
+    } else {
+      xhr.open((param.method || "GET").toUpperCase(), param.url, true, param.username, param.password);
+    }
     xhr.responseType = param.responseType || "";
     if (param.overrideMimeType) {
       xhr.overrideMimeType(param.overrideMimeType);
@@ -467,48 +472,39 @@
       xhr.withCredentials = param.withCredentials;
     }
     if (param.headers) {
-      for (k in param.headers) {
-        if (param.headers.hasOwnProperty(k)) {
-          xhr.setRequestHeader(k, param.headers[k]);
-        }
+      a = Object.keys(param.headers);
+      l = a.length;
+      for (i = 0; i < l; i += 1) {
+        k = a[i];
+        xhr.setRequestHeader(k, param.headers[k]);
       }
     }
     xhr.addEventListener("load", function (e) {
       if (param.getEvent) { return d.resolve(e); }
-      var r, t = e.target, callback;
-      if (t.status < 400) {
-        r = {};
-        callback = d.resolve;
-      } else {
-        r = new Error("XMLHttpRequest: " + (t.statusText || "unknown error"));
-        callback = d.reject;
-      }
-      r.response = t.response;
-      r.responseText = t.responseText;
-      r.responseType = t.responseType;
-      r.responseURL = t.responseURL;
-      r.responseXML = t.responseXML;
-      r.status = t.status || 0;
-      r.statusText = t.statusText || "Unknown";
-      r.timeout = t.timeout;
-      r.withCredentials = t.withCredentials;
-      r.headersText = t.getAllResponseHeaders();
-      r.headers = env.textToHttpHeadersObject(r.headersText);
-      callback(r);
+      var r, t = e.target;
+      if (t.status < 400) { return d.resolve(t); }
+      r = new Error("HTTP: " + (t.status ? t.status + " " : "") + (t.statusText || "Unknown"));
+      r.target = t;
+      return d.reject(r);
     }, false);
     xhr.addEventListener("error", function (e) {
       if (param.getEvent) { return d.resolve(e); }
-      return d.reject(new Error("request error"));
+      var r = new Error("HTTP: Error");
+      r.target = e.target;
+      return d.reject(r);
     }, false);
     xhr.addEventListener("abort", function (e) {
       if (param.getEvent) { return d.resolve(e); }
-      return d.reject(new Error("request aborted"));
+      var r = new Error("HTTP: Aborted");
+      r.target = e.target;
+      return d.reject(r);
     }, false);
     if (param.xhrFields) {
-      for (k in param.xhrFields) {
-        if (param.xhrFields.hasOwnProperty(k)) {
-          xhr[k] = param.xhrFields[k];
-        }
+      a = Object.keys(param.xhrFields);
+      l = a.length;
+      for (i = 0; i < l; i += 1) {
+        k = a[i];
+        xhr[k] = param.xhrFields[k];
       }
     }
     if (typeof param.beforeSend === 'function') {
@@ -517,7 +513,7 @@
     xhr.send(param.data);
     return d.promise;
   }
-  env.newXmlHttpRequestPromise = newXmlHttpRequestPromise;
+  env.newXmlHttpRequestTask = newXmlHttpRequestTask;
 
   ////////////////////
   // Worker helpers //
