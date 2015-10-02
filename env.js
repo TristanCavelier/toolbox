@@ -332,7 +332,7 @@
     layout.remove();
   }
   env.fitTextareaToTextHeightListener = fitTextareaToTextHeightListener;
-  function asyncFitTextareaToTextHeightListener(event) { env.setImmediate(fitTextareaToTextHeightListener, event); }
+  function asyncFitTextareaToTextHeightListener(event) { env.setTimeout(fitTextareaToTextHeightListener, 0, event); }
   env.asyncFitTextareaToTextHeightListener = asyncFitTextareaToTextHeightListener;
 
   //////////
