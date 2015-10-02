@@ -335,6 +335,51 @@
   function asyncFitTextareaToTextHeightListener(event) { env.setTimeout(fitTextareaToTextHeightListener, 0, event); }
   env.asyncFitTextareaToTextHeightListener = asyncFitTextareaToTextHeightListener;
 
+  function findLinksFromDom(dom) {
+    // [ { "url": string,  // raw url as written in the html
+    //     "attributeName": string,  // the attribute where the url was found (optional)
+    //     "element": HTMLElement}, ...]
+
+    var result = [], i, j, el, attr, tmp, row,
+      elements = dom.querySelectorAll("*"),
+      attributes = ["href", "src"],
+      attributesLength = attributes.length,
+      elementsLength = elements.length;
+    for (i = 0; i < elementsLength; i += 1) {
+      el = elements[i];
+      for (j = 0; j < attributesLength; j += 1) {
+        attr = attributes[j];
+        tmp = el.getAttribute(attr);
+        if (tmp) {
+          row = {
+            element: el,
+            url: tmp,
+            attributeName: attr
+          };
+          result.push(row);
+        }
+      }
+      if (el.tagName === "HTML") {
+        tmp = el.getAttribute("manifest");
+        if (tmp) {
+          result.push({
+            element: el,
+            url: tmp,
+            attributeName: "manifest"
+          });
+        }
+      }
+    }
+    return result;
+  }
+  env.findLinksFromDom = findLinksFromDom;
+
+  function parseHtml(html) {
+    /*global DOMParser */
+    return new DOMParser().parseFromString(html, "text/html");
+  }
+  env.parseHtml = parseHtml;
+
   //////////
   // HTTP //
   //////////
