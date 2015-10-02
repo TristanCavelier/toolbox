@@ -965,7 +965,7 @@
       if (chr >= 48 && chr <= 57) { return chr + 4; }
       if (chr === 43) { return 62; }
       if (chr === 47) { return 63; }
-      var e = new Error("Failed to execute 'decodeBase64ToBinaryStringPolyfill': The string to be decoded is not correctly encoded.")
+      var e = new Error("Failed to execute 'decodeBase64ToBinaryStringPolyfill': The string to be decoded is not correctly encoded.");
       e.name = "InvalidCharacterError";
       throw e;
     }
