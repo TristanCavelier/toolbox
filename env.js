@@ -384,7 +384,7 @@
   // HTTP //
   //////////
 
-  function textToHttpHeadersObject(text) {
+  function parseHttpHeaders(text) {
     // text ->
     //  "Server:   SimpleHTTP/0.6 Python/3.4.1\r\n
     //   Date: Wed, 04 Jun 2014 14:06:57 GMT   \r\n
@@ -395,37 +395,34 @@
     //   X-Cache: HIT via me\r\n
     //   X-Cache: HIT via other\r\n"
     // Returns ->
-    //   { "Server": "SimpleHTTP/0.6 Python/3.4.1",
-    //     "Date": "Wed, 04 Jun 2014 14:06:57 GMT",
-    //     "Value": "hello guys",
-    //     "Content-Type": "application/x-silverlight",
-    //     "Content-Length": "11240",
-    //     "Last-Modified": "Mon, 03 Dec 2012 23:51:07 GMT",
-    //     "X-Cache": "HIT via me, HIT via other" }
+    //   [ ["Server", "SimpleHTTP/0.6 Python/3.4.1"],
+    //     ["Date", "Wed, 04 Jun 2014 14:06:57 GMT"],
+    //     ["Value", "hello guys"],  // XXX check if it is the good behavior (refer to `xhr.getResponseHeader("Value")`)
+    //     ["Content-Type", "application/x-silverlight"],
+    //     ["Content-Length", "11240"],
+    //     ["Last-Modified", "Mon, 03 Dec 2012 23:51:07 GMT"],
+    //     ["X-Cache", "HIT via me"],
+    //     ["X-Cache", "HIT via other"] ]
 
     /*jslint regexp: true */
-    var result = {}, key, value = "";
-    text.split("\r\n").forEach(function (line) {
+    var result = [], key, value = "", line, split = text.split("\r\n"), i = 0, l = split.length;
+    while (i < l) {
+      line = split[i];
+      i += 1;
       if (line[0] === " " || line[0] === "\t") {
         value += " " + line.replace(/^\s*/, "").replace(/\s*$/, "");
       } else {
-        if (key) {
-          if (result[key]) {
-            result[key] += ", " + value;
-          } else {
-            result[key] = value;
-          }
-        }
+        if (key) { result.push([key, value]); }
         key = /^([^:]+)\s*:\s*(.*)$/.exec(line);
         if (key) {
           value = key[2].replace(/\s*$/, "");
           key = key[1];
         }
       }
-    });
+    }
     return result;
   }
-  env.textToHttpHeadersObject = textToHttpHeadersObject;
+  env.parseHttpHeaders = parseHttpHeaders;
 
   function newXmlHttpRequestTask(param) {
     /**
