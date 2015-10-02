@@ -184,15 +184,15 @@
   // Promise Manipulation //
   //////////////////////////
 
-  function newDeferred() {
-    var it = {};
-    it.promise = env.newPromise(function (resolve, reject) {
+  function Deferred() {
+    var it = this;
+    this.promise = env.newPromise(function (resolve, reject) {
       it.resolve = resolve;
       it.reject = reject;
     });
-    return it;
   }
-  env.newDeferred = newDeferred;
+  env.Deferred = Deferred;
+  env.newDeferred = function () { var c = env.Deferred, o = Object.create(c.prototype); c.apply(o, arguments); return o; };
 
   function newCancellableDeferred() {
     // Simple example:
