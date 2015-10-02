@@ -297,13 +297,25 @@
   // DOM Manipulation //
   //////////////////////
 
-  function textToHtmlElements(text) {
+  function parseHtmlElements(text) {
+    // Usage:
+    //   var elements = parseHtmlElements("<a>b</a><c>d<e>f</e></c><g>h</g>");
+    //   elements[0] // -> <a>
+    //   elements[1] // -> <c>
+    //   elements[2] // -> <e>
+    //   elements[3] // -> <g>
+    // Inject children in an element
+    //   [].forEach.call(elements, function (element) {
+    //     if (element.parentNode.parentNode) { return; }
+    //     root.appendChild(element);
+    //   });
+
     /*global document */
     var div = document.createElement("div");
     div.innerHTML = text;
     return div.querySelectorAll("*");
   }
-  env.textToHtmlElements = textToHtmlElements;
+  env.parseHtmlElements = parseHtmlElements;
 
   function fitTextareaToTextHeightListener(event) {
     // var textarea = document.querySelector("textarea");
