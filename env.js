@@ -516,7 +516,7 @@
   // Worker helpers //
   ////////////////////
 
-  function evalOnWorkerPromise(value) {
+  function evalOnWorkerTask(value) {
     /*global Worker, URL, Blob */
     // XXX how to avoid "Uncaught (in promise) error..." ?
     var worker = new Worker(URL.createObjectURL(new Blob([[
@@ -531,10 +531,10 @@
       "    postMessage([undefined, reason]);",
       "  });",
       "}"
-    ].join("\n")], {type: "application/javascript"}))), d = env.newCancellableDeferred();
-    d.oncancel = function () {
+    ].join("\n")], {type: "application/javascript"}))), d = env.newDeferred();
+    d.promise.cancel = function () {
       worker.terminate();
-      d.reject(new Error("evalOnWorkerPromise cancelled"));
+      d.reject(new Error("evalOnWorkerTask cancelled"));
     };
     worker.onmessage = function (e) {
       if (e.data.length > 1) { d.reject(e.data[1]); } else { d.resolve(e.data[0]); }
@@ -543,7 +543,7 @@
     worker.postMessage(value);
     return d.promise;
   }
-  env.evalOnWorkerPromise = evalOnWorkerPromise;
+  env.evalOnWorkerTask = evalOnWorkerTask;
 
   /////////////////////////
   // Object Manipulation //
