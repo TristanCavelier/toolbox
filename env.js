@@ -25,7 +25,7 @@
   ////////////
 
   (function () {
-    /*global setTimeout, clearTimeout, Promise
+    /*global setTimeout, clearTimeout, Promise,
              btoa, atob */
     env.setTimeout = typeof setTimeout === "function" ? setTimeout.bind(null) : null;
     env.clearTimeout = typeof clearTimeout === "function" ? clearTimeout.bind(null) : null;
@@ -937,7 +937,7 @@
     tmp = (/^\s*/).exec(text);
     text = text.slice(tmp[0].length);
     res.match += tmp[0];
-    while (true) {
+    while (true) {  // XXX while (true) is not optimizable
       // semicolon whitespaces
       if ((tmp = (/^(?:;\s*)+/).exec(text)) === null) { break; }
       text = text.slice(tmp[0].length);
