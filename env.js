@@ -957,6 +957,20 @@
   env.eatContentType = eatContentType;
 
   //////////////
+  // Escapers //
+  //////////////
+
+  function escapeHtml(text) {
+    return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+  env.escapeHtml = escapeHtml;
+
+  function escapeRegExp(text) {
+    return text.replace(/([\\\[\]\{\}\(\)\.\?\*\+\^\$])/g, "\\$1");
+  }
+  env.escapeRegExp = escapeRegExp;
+
+  //////////////
   // Encoders //
   //////////////
 
