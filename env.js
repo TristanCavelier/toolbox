@@ -18,6 +18,13 @@
   env.newEnv = function () { return script(); };
   env.this = env;
 
+  // API stability Levels (inspired from nodejs api):
+  //   0 - Deprecated (red)
+  //   1 - Experimental (orange)
+  //   2 - Stable (green)
+  //   3 - Locked (blue)
+  // If no level is mentioned = 3 - Locked
+
   //////////////////////////////////////////////////////////////////////
 
   ////////////
@@ -217,6 +224,7 @@
   env.newDeferred = function () { var c = env.Deferred, o = Object.create(c.prototype); c.apply(o, arguments); return o; };
 
   function Task(generator) {
+    // API stability level: 1 - Experimental
     var it = this;
     this["[[TaskPromise]]"] = env.newPromise(function (resolve, reject) {
       var g = generator();
@@ -279,6 +287,7 @@
   env.spawn = env.newTask = function () { var c = env.Task, o = Object.create(c.prototype); c.apply(o, arguments); return o; };
 
   function TaskSequence(queue) {
+    // API stability level: 1 - Experimental
     var it = this;
     this["[[TaskPromise]]"] = env.newPromise(function (resolve, reject) {
       var i = 0;
@@ -408,6 +417,8 @@
     //     "attributeName": string,  // the attribute where the url was found (optional)
     //     "element": HTMLElement}, ...]
 
+    // API stability level: 2 - Stable
+
     var result = [], i, j, el, attr, tmp, row,
       elements = dom.querySelectorAll("*"),
       attributes = ["href", "src"],
@@ -472,6 +483,8 @@
     //     ["X-Cache", "HIT via me"],
     //     ["X-Cache", "HIT via other"] ]
 
+    // API stability level: 2 - Stable
+
     /*jslint regexp: true */
     var result = [], key, value = "", line, split = text.split("\r\n"), i = 0, l = split.length;
     while (i < l) {
@@ -520,6 +533,8 @@
      *   send request. The first parameter of this function is the XHR object.
      * @return {Task<XMLHttpRequest>} The XHR
      */
+
+    // API stability level: 2 - Stable
 
     /*global XMLHttpRequest */
     var d = env.newDeferred(), xhr = new XMLHttpRequest(), k, i, l, a;
@@ -585,6 +600,8 @@
   ////////////////////
 
   function evalOnWorkerTask(value) {
+    // API stability level: 1 - Experimental
+
     /*global Worker, URL, Blob */
     // XXX how to avoid "Uncaught (in promise) error..." ?
     var worker = new Worker(URL.createObjectURL(new Blob([[
@@ -776,6 +793,8 @@
   //////////////////////////////
 
   env.new = function (Constructor) {
+    // API stability level: 2 - Stable
+
     /*jslint plusplus: true */
     var l = arguments.length - 1, i = 0, args = new Array(l);
     while (i < l) { args[i] = arguments[++i]; }
@@ -785,6 +804,7 @@
   };
 
   function staticMethodNew() {
+    // API stability level: 2 - Stable
     var o = Object.create(this);
     this.apply(o, arguments);
     return o;
@@ -815,6 +835,8 @@
     //   bufferWriter.index = 1;
     //   bufferWriter.write([5]); // returns: 1
     //   bufferWriter.buffer; // returns: [1, 5, 3, 4]
+
+    // API stability level: 1 - Experimental
     this.buffer = buffer || [];
     this.index = this.buffer.length;
   }
@@ -838,6 +860,8 @@
     //   arrayWriter.index = 2;
     //   arrayWriter.write([5, 6]); // returns: 1
     //   arrayWriter.array; // returns: [4, 2, 5]
+
+    // API stability level: 1 - Experimental
     this.array = array;
   }
   ArrayWriter.prototype.array = null;
@@ -860,6 +884,8 @@
     //   arrayReader.index = 1;
     //   arrayReader.read(1); // returns: [2]
     //   arrayReader.read(2); // returns: [3]
+
+    // API stability level: 1 - Experimental
     this.array = array || [];
   }
   ArrayReader.prototype.array = null;
@@ -901,6 +927,8 @@
     //   stringReader.index = 1;
     //   stringReader.read(1); // returns: "b"
     //   stringReader.read(2); // returns: "c"
+
+    // API stability level: 1 - Experimental
     this.string = string || "";
   }
   StringReader.prototype.string = "";
@@ -930,6 +958,8 @@
     //   mimetype := type "/" subtype
     //     type /[a-z]+/
     //     subtype /[a-zA-Z_\-\.\+]+/
+
+    // API stability level: 2 - Stable
     var res = (/^([a-z]+)\/([a-zA-Z_\-\.\+]+)/).exec(text);
     if (res) {
       return {
@@ -953,6 +983,9 @@
     //     value := token / quoted-string
     //       token /[a-zA-Z0-9!#\$%&'\*\+\-\.\^_`\{\|\}~]+/  // US-ASCII CHARS except ()<>@,;:\"/[]?=
     //       quoted-string /"(?:[^\\"]|\\[^])*"/ -> for jslint, [^] is not accepted, we can use [\s\S] (following RFC it should be [\x00-\x7F])
+
+    // API stability level: 2 - Stable
+
     /*jslint regexp: true */
     var res = (/^([a-zA-Z0-9!#\$%&'\*\+\-\.\^_`\{\|\}~]*)(?:\s*=\s*([a-zA-Z0-9!#\$%&'\*\+\-\.\^_`\{\|\}~]*|"(?:[^\\"]|\\[\s\S])*"))?/).exec(text);
     //if (res) {
@@ -984,6 +1017,9 @@
     // see https://tools.ietf.org/html/rfc2045#section-5.1
     //   content-type := mimetype content-type-parameters
     //     content-type-parameters := / content-type-parameter content-type-parameters
+
+    // API stability level: 2 - Stable
+
     /*jslint ass: true */
     // mimetype
     var res = env.eatMimeType(text), tmp, whitespaceMatch;
@@ -1019,6 +1055,8 @@
 
   function parseStringifiedRegExp(string) {
     // parseStringifiedRegExp("/hello/g") -> /hello/g
+
+    // API stability level: 2 - Stable
 
     /*jslint regexp: true */
     var res = /^\/((?:\\.|[^\\\/])*)\/([gimy]{0,4})$/.exec(string);  // this regexp does not handle flag errors!
