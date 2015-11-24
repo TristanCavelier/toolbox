@@ -40,6 +40,23 @@
   // Polyfill //
   //////////////
 
+  env.newSetImmediateFunctionBasedOnSeveralSetTimeouts = function (maxTimers) {
+    var queue = [], count = 0;
+    if (maxTimers === undefined) { maxTimers = 6; }
+    function exec() {
+      count--;
+      if (queue.length) { queue.shift()(); }
+    }
+    function setImmediate(fn) {
+      var l = arguments.length - 1, a = new Array(l), i = 0;
+      while (i < l) { a[i] = arguments[++i]; }
+      queue.push(fn.apply.bind(fn, null, a));
+      while (++count < maxTimers) { setTimeout(exec); }
+      setTimeout(exec);
+    }
+    return setImmediate;
+  };
+
   if (typeof env.Promise === "function") {
     env.setImmediate = function (fn) {
       /*jslint plusplus: true */
@@ -48,18 +65,23 @@
       env.Promise.resolve().then(fn.apply.bind(fn, null, args));
     };
   } else {
-    env.setImmediate = function (fn) {
-      // XXX find something else like mutation observer
-      /*jslint plusplus: true */
-      var l = arguments.length - 1, i = 0, args = new Array(l);
-      while (i < l) { args[i] = arguments[++i]; }
-      env.setTimeout(fn.apply.bind(fn, null, args));
-    };
+    env.setImmediate = env.newSetImmediateFunctionBasedOnSeveralSetTimeouts();
   }
 
   env.PromisePolyfill = (function () {
 
-    // XXX function setImmediate() {}
+    var queue = [], count = 0, maxTimers = 6;
+    function exec() {
+      count--;
+      if (queue.length) { queue.shift()(); }
+    }
+    function setImmediate(fn) {
+      var l = arguments.length - 1, a = new Array(l), i = 0;
+      while (i < l) { a[i] = arguments[++i]; }
+      queue.push(fn.apply.bind(fn, null, a));
+      while (++count < maxTimers) { setTimeout(exec); }
+      setTimeout(exec);
+    }
 
     function handleListener(previous, next, listener, offset) {
       /*global resolvePromise */
@@ -97,7 +119,7 @@
       var i, a = promise["[[PromiseStack]]"], l = a.length;
       delete promise["[[PromiseStack]]"];
       for (i = 0; i < l; i += 3) {
-        setTimeout(handleListener, 0, promise, a[i], a[i + offset], offset);
+        setImmediate(handleListener, 0, promise, a[i], a[i + offset], offset);
       }
     }
 
@@ -128,9 +150,9 @@
     PromisePolyfill.prototype.then = function (onDone, onFail) {
       var next = new PromisePolyfill(function () { return; });
       if (this["[[PromiseStatus]]"] === "resolved") {
-        setTimeout(handleListener, 0, this, next, onDone, 1);
+        setImmediate(handleListener, 0, this, next, onDone, 1);
       } else if (this["[[PromiseStatus]]"] === "rejected") {
-        setTimeout(handleListener, 0, this, next, onFail, 2);
+        setImmediate(handleListener, 0, this, next, onFail, 2);
       } else {
         this["[[PromiseStack]]"].push(next, onDone, onFail);
       }
