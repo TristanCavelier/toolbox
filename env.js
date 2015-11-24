@@ -344,9 +344,9 @@
   env.TaskSequence = TaskSequence;
   env.newTaskSequence = function () { var c = env.TaskSequence, o = Object.create(c.prototype); c.apply(o, arguments); return o; };
 
-  //////////////////
-  // EventManager //
-  //////////////////
+  /////////////////////
+  // Event Mechanism //
+  /////////////////////
 
   function EventManager() {
     // can be mixed in with:
