@@ -51,10 +51,11 @@
     var queue = [], count = 0;
     if (maxTimers === undefined) { maxTimers = 6; }
     function exec() {
-      count--;
+      count -= 1;
       if (queue.length) { queue.shift()(); }
     }
     function setImmediate(fn) {
+      /*jslint plusplus: true */
       var l = arguments.length - 1, a = new Array(l), i = 0;
       while (i < l) { a[i] = arguments[++i]; }
       queue.push(fn.apply.bind(fn, null, a));
@@ -77,16 +78,17 @@
 
   env.PromisePolyfill = (function () {
 
-    var queue = [], count = 0, maxTimers = 6;
+    var queue = [], timerCount = 0, maxTimers = 6;
     function exec() {
-      count--;
+      timerCount -= 1;
       if (queue.length) { queue.shift()(); }
     }
     function setImmediate(fn) {
+      /*jslint plusplus: true */
       var l = arguments.length - 1, a = new Array(l), i = 0;
       while (i < l) { a[i] = arguments[++i]; }
       queue.push(fn.apply.bind(fn, null, a));
-      while (++count < maxTimers) { setTimeout(exec); }
+      while (++timerCount < maxTimers) { setTimeout(exec); }
       setTimeout(exec);
     }
 
@@ -687,7 +689,7 @@
     var i = 0, l = path.length - 1;
     while (i < l) { object = object[path[i++]]; }
     object[path[i]] = value;
-    return value
+    return value;
   }
   env.setPropertyPath = setPropertyPath;
 
