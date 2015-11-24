@@ -284,7 +284,7 @@
     return p.catch.apply(p, arguments);
   };
   env.Task = Task;
-  env.spawn = env.newTask = function () { var c = env.Task, o = Object.create(c.prototype); c.apply(o, arguments); return o; };
+  env.newTask = function () { var c = env.Task, o = Object.create(c.prototype); c.apply(o, arguments); return o; };
 
   function TaskSequence(queue) {
     // API stability level: 1 - Experimental
@@ -340,7 +340,7 @@
   }
   TaskSequence.prototype = Object.create(Task.prototype);
   env.TaskSequence = TaskSequence;
-  env.seq = env.newTaskSequence = function () { var c = env.TaskSequence, o = Object.create(c.prototype); c.apply(o, arguments); return o; };
+  env.newTaskSequence = function () { var c = env.TaskSequence, o = Object.create(c.prototype); c.apply(o, arguments); return o; };
 
   ////////////
   // Random //
@@ -1296,6 +1296,15 @@
   //if ((tmp = ab2hex(env.md5sumArrayBuffer(bs2ab("The quick brown fox jumps over the lazy dog.")))) !== "e4d909c290d0fb1ca068ffaddf22cbd0") { alert(tmp); }
   //if ((tmp = ab2hex(env.md5sumArrayBuffer(bs2ab("The quick brown fox jumps over the lazy black and white dog.")))) !== "a62edd3f024b98a4f6fce7afb7f066eb") { alert(tmp); }
   //if ((tmp = ab2hex(env.md5sumArrayBuffer(bs2ab("")))) !== "d41d8cd98f00b204e9800998ecf8427e") { alert(tmp); }
+
+  ///////////////
+  // Shortcuts //
+  ///////////////
+
+  env.btoa = env.encodeBinaryStringToBase64;
+  env.atob = env.decodeBase64ToBinaryString;
+  env.spawn = env.newTask;
+  env.seq = env.newTaskSequence;
 
   //////////////////////////////////////////////////////////////////////
 
