@@ -655,6 +655,35 @@
   }
   env.setDefaultObjectProperties = setDefaultObjectProperties;
 
+  function getPropertyPath(object, path) {
+    // value = getPropertyPath(object, ["feed", "items", 0, "title"])
+
+    /*jslint plusplus: true */
+    var i = 0, l = path.length;
+    while (i < l) { object = object[path[i++]]; }
+    return object;
+  }
+  env.getPropertyPath = getPropertyPath;
+
+  function setPropertyPath(object, path, value) {
+    /*jslint plusplus: true */
+    var i = 0, l = path.length - 1;
+    while (i < l) { object = object[path[i++]]; }
+    object[path[i]] = value;
+    return value
+  }
+  env.setPropertyPath = setPropertyPath;
+
+  function softGetPropertyPath(object, path) {
+    try {
+      return env.getPropertyPath(object, path);
+    } catch (ignored) {
+      return undefined;
+    }
+  }
+  env.softGetPropertyPath = softGetPropertyPath;
+
+
   ////////////////////////
   // Array manipulation //
   ////////////////////////
