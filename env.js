@@ -655,6 +655,16 @@
   }
   env.setDefaultObjectProperties = setDefaultObjectProperties;
 
+  ////////////////////////
+  // Array manipulation //
+  ////////////////////////
+
+  function copySliceInto(src, dst, srci, dsti, len) {
+    /*jslint plusplus: true */
+    while (len-- > 0) { dst[dsti++] = src[srci++]; }
+  }
+  env.copySliceInto = copySliceInto;
+
   ///////////////////////////
   // function manipulation //
   ///////////////////////////
@@ -1092,6 +1102,133 @@
   }
   env.decodeBase64ToBinaryStringPolyfill = decodeBase64ToBinaryStringPolyfill;
   if (env.decodeBase64ToBinaryString === null) { env.decodeBase64ToBinaryString = env.decodeBase64ToBinaryStringPolyfill; }
+
+  //////////////////////
+  // Bit manipulators //
+  //////////////////////
+
+  function leftRotateInt32Bits(num, cnt) {
+    /*jslint bitwise: true */
+    return (num << cnt) | (num >>> (32 - cnt));
+  }
+  env.leftRotateInt32Bits = leftRotateInt32Bits;
+
+  /////////////
+  // Hashers //
+  /////////////
+
+  function md5sumArrayBuffer(message) {
+    // @param  {ArrayBuffer} message
+    // @return {ArrayBuffer} hash
+
+    // Info: Uint32Array endianness is always little-endian in javascript
+    // API stability level: 2 - Stable
+
+    /*global Uint8Array, Uint32Array */
+    var mod, padding2,
+      leftrotate = env.leftRotateInt32Bits,
+      memcpy = env.copySliceInto,
+      hash = new Uint32Array(4),
+      padding = new Uint8Array(64),
+      M = new Uint32Array(16),
+      bl = message.byteLength,
+      s = [
+        7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,
+        5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20,
+        4, 11, 16, 23,  4, 11, 16, 23,  4, 11, 16, 23,  4, 11, 16, 23,
+        6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21
+      ],
+      K = [
+        0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee,
+        0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501,
+        0x698098d8, 0x8b44f7af, 0xffff5bb1, 0x895cd7be,
+        0x6b901122, 0xfd987193, 0xa679438e, 0x49b40821,
+        0xf61e2562, 0xc040b340, 0x265e5a51, 0xe9b6c7aa,
+        0xd62f105d, 0x02441453, 0xd8a1e681, 0xe7d3fbc8,
+        0x21e1cde6, 0xc33707d6, 0xf4d50d87, 0x455a14ed,
+        0xa9e3e905, 0xfcefa3f8, 0x676f02d9, 0x8d2a4c8a,
+        0xfffa3942, 0x8771f681, 0x6d9d6122, 0xfde5380c,
+        0xa4beea44, 0x4bdecfa9, 0xf6bb4b60, 0xbebfbc70,
+        0x289b7ec6, 0xeaa127fa, 0xd4ef3085, 0x04881d05,
+        0xd9d4d039, 0xe6db99e5, 0x1fa27cf8, 0xc4ac5665,
+        0xf4292244, 0x432aff97, 0xab9423a7, 0xfc93a039,
+        0x655b59c3, 0x8f0ccc92, 0xffeff47d, 0x85845dd1,
+        0x6fa87e4f, 0xfe2ce6e0, 0xa3014314, 0x4e0811a1,
+        0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391
+      ];
+    memcpy([0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476], hash, 0, 0, 4);
+    message = new Uint8Array(message);
+
+    padding = new Uint32Array(padding.buffer);
+    padding[14] = bl * 8;
+    padding[15] = bl * 8 / 0x100000000;
+    padding = new Uint8Array(padding.buffer);
+
+    mod = bl % 64;
+    if (mod) {
+      bl -= mod;
+      if (mod > 56) {
+        padding2 = new Uint8Array(64);
+        memcpy(message, padding2, bl, 0, mod);
+        padding2[mod] = 0x80;
+      } else {
+        memcpy(message, padding, bl, 0, mod);
+        padding[mod] = 0x80;
+      }
+    } else {
+      padding[0] = 0x80;
+    }
+    function blk(A, i, hash) {
+      /*jslint bitwise: true */
+      var a = hash[0], b = hash[1], c = hash[2], d =  hash[3], f = 0, g = 0, tmp = 0;
+      M[0] = A[i] + A[i + 1] * 0x100 + A[i + 2] * 0x10000 + A[i + 3] * 0x1000000;
+      i += 4;
+      while (i % 64) {
+        M[(i % 64) / 4] = A[i] + A[i + 1] * 0x100 + A[i + 2] * 0x10000 + A[i + 3] * 0x1000000;
+        i += 4;
+      }
+      i = 0;
+      while (i < 64) {
+        if (i < 16) {
+          f = (b & c) | ((~b) & d);
+          g = i;
+        } else if (i < 32) {
+          f = (d & b) | ((~d) & c);
+          g = (5 * i + 1) % 16;
+        } else if (i < 48) {
+          f = b ^ c ^ d;
+          g = (3 * i + 5) % 16;
+        } else {
+          f = c ^ (b | (~d));
+          g = (7 * i) % 16;
+        }
+        tmp = d;
+        d = c;
+        c = b;
+        b = b + leftrotate((a + f + K[i] + M[g]), s[i]);
+        a = tmp;
+        i += 1;
+      }
+      hash[0] = hash[0] + a;
+      hash[1] = hash[1] + b;
+      hash[2] = hash[2] + c;
+      hash[3] = hash[3] + d;
+    }
+    mod = 0;
+    while (mod < bl) {
+      blk(message, mod, hash);
+      mod += 64;
+    }
+    if (padding2) { blk(padding2, 0, hash); }
+    blk(padding, 0, hash);
+    return hash.buffer;
+  }
+  env.md5sumArrayBuffer = md5sumArrayBuffer;
+
+  //if ((tmp = ab2hex(env.md5sumArrayBuffer(bs2ab("The quick brown fox jumps over the lazy dog")))) !== "9e107d9d372bb6826bd81d3542a419d6") { alert(tmp); }
+  //if ((tmp = ab2hex(env.md5sumArrayBuffer(bs2ab("The quick brown fox jumps over the lazy dog.")))) !== "e4d909c290d0fb1ca068ffaddf22cbd0") { alert(tmp); }
+  //if ((tmp = ab2hex(env.md5sumArrayBuffer(bs2ab("The quick brown fox jumps over the lazy black and white dog.")))) !== "a62edd3f024b98a4f6fce7afb7f066eb") { alert(tmp); }
+  //if ((tmp = ab2hex(env.md5sumArrayBuffer(bs2ab("")))) !== "d41d8cd98f00b204e9800998ecf8427e") { alert(tmp); }
 
   //////////////////////////////////////////////////////////////////////
 
