@@ -978,6 +978,18 @@
   }
   env.eatContentType = eatContentType;
 
+  function parseStringifiedRegExp(string) {
+    // parseStringifiedRegExp("/hello/g") -> /hello/g
+
+    /*jslint regexp: true */
+    var res = /^\/((?:\\.|[^\\\/])*)\/([gimy]{0,4})$/.exec(string);  // this regexp does not handle flag errors!
+    if (res) {
+      try { return new RegExp(res[1], res[2]); } catch (ignore) {}  // only this part checks for flag errors.
+    }
+    return null;
+  }
+  env.parseStringifiedRegExp = parseStringifiedRegExp;
+
   //////////////
   // Escapers //
   //////////////
