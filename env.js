@@ -413,7 +413,7 @@
   env.asyncFitTextareaToTextHeightListener = asyncFitTextareaToTextHeightListener;
 
   function findLinksFromDom(dom) {
-    // [ { "url": string,  // raw url as written in the html
+    // [ { "href": string,  // raw url as written in the html
     //     "attributeName": string,  // the attribute where the url was found (optional)
     //     "element": HTMLElement}, ...]
 
@@ -432,7 +432,7 @@
         if (tmp) {
           row = {
             element: el,
-            url: tmp,
+            href: tmp,
             attributeName: attr
           };
           result.push(row);
@@ -443,7 +443,7 @@
         if (tmp) {
           result.push({
             element: el,
-            url: tmp,
+            href: tmp,
             attributeName: "manifest"
           });
         }
