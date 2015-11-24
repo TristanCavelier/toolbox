@@ -344,6 +344,53 @@
   env.TaskSequence = TaskSequence;
   env.newTaskSequence = function () { var c = env.TaskSequence, o = Object.create(c.prototype); c.apply(o, arguments); return o; };
 
+  //////////////////
+  // EventManager //
+  //////////////////
+
+  function EventManager() {
+    // can be mixed in with:
+    //     env.mixObjectProperties(Constructor.prototype, EventManager.prototype);
+
+    // API stability level: 1 - Experimental
+    return;
+  }
+  EventManager.prototype.addEventListener = function (type, listener) {
+    //if (typeof listener !== "function") { return; }
+    var key = "[[EventManagerListeners:" + type + "]]";
+    if (this[key]) {
+      this[key].push(listener);
+    } else {
+      this[key] = [listener];
+    }
+  };
+  EventManager.prototype.removeEventListener = function (type, listener) {
+    /*jslint plusplus: true */
+    var key = "[[EventManagerListeners:" + type + "]]", listeners = this[key] || [], i, l = listeners.length;
+    for (i = 0; i < l; i += 1) {
+      if (listeners[i] === listener) {
+        if (l === 1) {
+          delete this[key];
+          return;
+        }
+        while (i < l) { listeners[i] = listeners[++i]; }
+        listeners.length -= 1;
+        return;
+      }
+    }
+  };
+  EventManager.prototype.dispatchEvent = function (event) {
+    var key = "[[EventManagerListeners:" + event.type + "]]", key2 = "on" + event.type, listeners = this[key] || [], i, l = listeners.length;
+    if (typeof this[key2] === "function") {
+      try { this[key2](event); } catch (ignore) {}
+    }
+    for (i = 0; i < l; i += 1) {
+      try { listeners[i](event); } catch (ignore) {}
+    }
+  };
+  env.EventManager = EventManager;
+  env.newEventManager = function () { var c = env.EventManager, o = Object.create(c.prototype); c.apply(o, arguments); return o; };
+
   ////////////
   // Random //
   ////////////
