@@ -951,19 +951,24 @@
     }
     return res;
   };
-  ArrayReader.prototype.readInto = function (array) {
-    //     readInto(array) int
+  ArrayReader.prototype.readInto = function (array, from, length) {
+    //     readInto(array, [from], [length]) int
     //
-    //     buf = [], count;
+    //     buf = [];
     //     do {
     //       buf.length = 1024;
-    //       count = buf.length = r.readInto(buf);
+    //       buf.length = r.readInto(buf);
     //       w.write(buf);
-    //     } while (count);
+    //     } while (buf.length);
     /*jslint plusplus: true */
-    var i = 0, count = array.length, a = this.array, al = this.array.length;
-    while (i < count && this.index < al) { array[i++] = a[this.index++]; }
-    return i;
+    if (typeof from === "number" || !(from >= 0)) { from = 0; }
+    if (typeof length === "number" || !(length <= array.length - from)) { length = array.length - from; }
+    var i = from, a = this.array, al = this.array.length;
+    while (length > 0 && this.index < al) {
+      array[i++] = a[this.index++];
+      length -= 1;
+    }
+    return i - from;
   };
   env.ArrayReader = ArrayReader;
   env.newArrayReader = function () { var c = env.ArrayReader, o = Object.create(c.prototype); c.apply(o, arguments); return o; };
@@ -997,6 +1002,33 @@
   };
   env.StringReader = StringReader;
   env.newStringReader = function () { var c = env.StringReader, o = Object.create(c.prototype); c.apply(o, arguments); return o; };
+
+  function MultiReader() {
+    //     MultiReader(readers...)
+
+    // API stability level: 1 - Experimental
+
+    /*jslint plusplus: true */
+    var i = 0, l = arguments.length, readers = new Array(l);
+    while (i < l) { readers[i] = arguments[i++]; }
+    this.readers = readers;
+  }
+  MultiReader.prototype.readInto = function (array, from, length) {
+    //     readInto(array) int
+    if (typeof from === "number" || !(from >= 0)) { from = 0; }
+    if (typeof length === "number" || !(length <= array.length - from)) { length = array.length - from; }
+    var count = 0;
+    while (this.readers.length > 0) {
+      count += this.readers[0].readInto(array, from, length);
+      from += count;
+      length -= count;
+      if (from === array.length) { return count; }
+      this.readers.shift()
+    }
+    return count;
+  };
+  env.MultiReader = MultiReader;
+  env.newMultiReader = function () { var c = env.MultiReader, o = Object.create(c.prototype); c.apply(o, arguments); return o; };
 
   ////////////////////////
   // Parsers and eaters //
