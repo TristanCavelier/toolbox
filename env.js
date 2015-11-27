@@ -1023,6 +1023,36 @@
   env.MultiReader = MultiReader;
   env.newMultiReader = function () { var c = env.MultiReader, o = Object.create(c.prototype); c.apply(o, arguments); return o; };
 
+  function MultiWriter() {
+    /*jslint plusplus: true */
+    var i = 0, l = arguments.length, writers = new Array(l);
+    while (i < l) { writers[i] = arguments[i++]; }
+    this.writers = writers;
+  }
+  MultiWriter.prototype.write = function (array, from, length) {
+    var i = 0, l = this.writers.length, n;
+    while (i < l) {
+      n = this.writers[i].write(array, from, length);
+      if (n !== length) { throw new Error("short write"); }
+      i += 1;
+    }
+    return length;
+  };
+  env.MultiWriter = MultiWriter;
+  env.newMultiWriter = function () { var c = env.MultiWriter, o = Object.create(c.prototype); c.apply(o, arguments); return o; };
+
+  function TeeReader(reader, writer) {
+    this.reader = reader;
+    this.writer = writer;
+  }
+  TeeReader.prototype.readInto = function (array, from, length) {
+    length = this.reader.readInto(array, from, length);
+    this.writer.write(array, from, length);
+    return length;
+  };
+  env.TeeReader = TeeReader;
+  env.newTeeReader = function () { var c = env.TeeReader, o = Object.create(c.prototype); c.apply(o, arguments); return o; };
+
   ////////////////////////
   // Parsers and eaters //
   ////////////////////////
