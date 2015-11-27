@@ -1023,7 +1023,7 @@
       from += count;
       length -= count;
       if (from === array.length) { return count; }
-      this.readers.shift()
+      this.readers.shift();
     }
     return count;
   };
