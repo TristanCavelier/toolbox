@@ -915,12 +915,12 @@
   }
   ArrayWriter.prototype.array = null;
   ArrayWriter.prototype.index = 0;
-  ArrayWriter.prototype.write = function (array) {
-    //     write(array iterable) writenCount int
+  ArrayWriter.prototype.write = function (array, from, length) {
+    //     write(array array, from, length int) writenCount int
     /*jslint plusplus: true */
-    var i = 0, l = array.length, buffer = this.array, bl = buffer.length;
-    while (i < l && this.index < bl) { buffer[this.index++] = array[i++]; }
-    return i;
+    var i = from, buffer = this.array, bl = buffer.length;
+    while (i < length && this.index < bl) { buffer[this.index++] = array[i++]; }
+    return i - from;
   };
   env.ArrayWriter = ArrayWriter;
   env.newArrayWriter = function () { var c = env.ArrayWriter, o = Object.create(c.prototype); c.apply(o, arguments); return o; };
@@ -935,24 +935,24 @@
     //   arrayReader.read(2); // returns: [3]
 
     // API stability level: 1 - Experimental
-    this.array = array || [];
+    this.raw = array || [];
   }
-  ArrayReader.prototype.array = null;
+  ArrayReader.prototype.raw = null;
   ArrayReader.prototype.index = 0;
   ArrayReader.prototype.read = function (count) {
-    //     read([count int]) iterable
+    //     read([count int]) array
     // `count === undefined` means `count === Infinity`
     /*jslint plusplus: true */
-    var res = [], i = 0, buffer = this.array, bl = buffer.length;
+    var res = [], i = 0, b = this.raw, bl = b.length;
     if (count === undefined) {
-      while (this.index < bl) { res[i++] = buffer[this.index++]; }
+      while (this.index < bl) { res[i++] = b[this.index++]; }
     } else {
-      while (i < count && this.index < bl) { res[i++] = buffer[this.index++]; }
+      while (i < count && this.index < bl) { res[i++] = b[this.index++]; }
     }
     return res;
   };
   ArrayReader.prototype.readInto = function (array, from, length) {
-    //     readInto(array, [from], [length]) int
+    //     readInto(array array, from, length int) readCount int
     //
     //     buf = [];
     //     do {
@@ -960,14 +960,10 @@
     //       buf.length = r.readInto(buf);
     //       w.write(buf);
     //     } while (buf.length);
+
     /*jslint plusplus: true */
-    if (typeof from === "number" || !(from >= 0)) { from = 0; }
-    if (typeof length === "number" || !(length <= array.length - from)) { length = array.length - from; }
-    var i = from, a = this.array, al = this.array.length;
-    while (length > 0 && this.index < al) {
-      array[i++] = a[this.index++];
-      length -= 1;
-    }
+    var i = from, a = this.raw, al = a.length;
+    while (i < length && this.index < al) { array[i++] = a[this.index++]; }
     return i - from;
   };
   env.ArrayReader = ArrayReader;
@@ -983,19 +979,16 @@
     //   stringReader.read(2); // returns: "c"
 
     // API stability level: 1 - Experimental
-    this.string = string || "";
+    this.raw = string || "";
   }
-  StringReader.prototype.string = "";
-  StringReader.prototype.index = 0;
-  StringReader.prototype.read = function (count) {
-    //     read([count int]) iterable
-    // `count === undefined` means `count === Infinity`
-    /*jslint plusplus: true */
+  StringReader.prototype = Object.create(ArrayReader.prototype);  // XXX inherit or mix ?
+  StringReader.prototype.readString = function (length) {
+    //     readString([length int]) array
     var res;
-    if (count === undefined) {
-      res = this.string.slice(this.index);
+    if (length === undefined) {
+      res = this.raw.slice(this.index);
     } else {
-      res = this.string.slice(this.index, this.index + count);
+      res = this.raw.slice(this.index, this.index + length);
     }
     this.index += res.length;
     return res;
@@ -1014,9 +1007,9 @@
     this.readers = readers;
   }
   MultiReader.prototype.readInto = function (array, from, length) {
-    //     readInto(array) int
-    if (typeof from === "number" || !(from >= 0)) { from = 0; }
-    if (typeof length === "number" || !(length <= array.length - from)) { length = array.length - from; }
+    //     readInto(array array, from, length int) readCount int
+    //if (typeof from === "number" || !(from >= 0)) { from = 0; }
+    //if (typeof length === "number" || !(length <= array.length - from)) { length = array.length - from; }
     var count = 0;
     while (this.readers.length > 0) {
       count += this.readers[0].readInto(array, from, length);
