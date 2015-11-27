@@ -891,12 +891,12 @@
   }
   BufferWriter.prototype.buffer = null;
   BufferWriter.prototype.index = 0;
-  BufferWriter.prototype.write = function (array) {
-    //     write(array iterable) writenCount int
+  BufferWriter.prototype.write = function (array, from, length) {
+    //     write(array array, from, length int) writenCount int
     /*jslint plusplus: true */
-    var i = 0, l = array.length, buffer = this.buffer;
-    while (i < l) { buffer[this.index++] = array[i++]; }
-    return i;
+    var i = from, buffer = this.buffer;
+    while (i < length) { buffer[this.index++] = array[i++]; }
+    return i - from;
   };
   env.BufferWriter = BufferWriter;
   env.newBufferWriter = function () { var c = env.BufferWriter, o = Object.create(c.prototype); c.apply(o, arguments); return o; };
