@@ -578,6 +578,8 @@
      * @param  {Object} [param.xhrFields] The other xhr fields to fill
      * @param  {Boolean} [param.getEvent] Tell the method to return the
      *   response event.
+     * @param  {Function} [param.onProgress] A listener that will be attach to the XHR
+     * @param  {Function} [param.onUploadProgress] A listener that will be attach to the XHR upload
      * @param  {Function} [param.beforeSend] A function called just before the
      *   send request. The first parameter of this function is the XHR object.
      * @return {Task<XMLHttpRequest>} The XHR
@@ -628,6 +630,12 @@
       r.target = e.target;
       return d.reject(r);
     }, false);
+    if (typeof param.onProgress === "function") {
+      xhr.addEventListener("progress", param.onProgress);
+    }
+    if (typeof param.onUploadProgress === "function") {
+      xhr.upload.addEventListener("progress", param.onUploadProgress);
+    }
     if (param.xhrFields) {
       a = Object.keys(param.xhrFields);
       l = a.length;
