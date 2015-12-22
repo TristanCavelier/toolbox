@@ -338,7 +338,7 @@
       delete this["[[TaskPaused]]"];
       p = this["[[TaskSubPromise]]"];
       //try { if (typeof p.then === "function") { p.resume(); } } catch (ignore) {}
-      if (p && typeof p.then === "function" && typeof p.pause === "function") { p.pause(); }
+      if (p && typeof p.then === "function" && typeof p.resume === "function") { p.resume(); }
     }
     return this;
   };
