@@ -99,9 +99,7 @@
     function handleListener(previous, next, listener, offset) {
       /*global resolvePromise */
       var value;
-      if (typeof listener !== "function") {
-        return resolvePromise(next, previous["[[PromiseValue]]"], offset);
-      }
+      if (typeof listener !== "function") { return resolvePromise(next, previous["[[PromiseValue]]"], offset); }
       try {
         value = listener(previous["[[PromiseValue]]"]);
         if (value && typeof value.then === "function") {
@@ -131,9 +129,7 @@
       promise["[[PromiseStatus]]"] = offset === 1 ? "resolved" : "rejected";
       var i, a = promise["[[PromiseStack]]"], l = a.length;
       delete promise["[[PromiseStack]]"];
-      for (i = 0; i < l; i += 3) {
-        setImmediate(handleListener, promise, a[i], a[i + offset], offset);
-      }
+      for (i = 0; i < l; i += 3) { setImmediate(handleListener, promise, a[i], a[i + offset], offset); }
     }
 
     function resolvePromise(promise, value, offset) {
@@ -142,12 +138,8 @@
     }
 
     function PromisePolyfill(executor) {
-      if (!(this instanceof PromisePolyfill)) {
-        throw new TypeError(this + " is not a promise");
-      }
-      if (typeof executor !== "function") {
-        throw new TypeError("Promise resolver " + executor + " is not a function");
-      }
+      if (!(this instanceof PromisePolyfill)) { throw new TypeError(this + " is not a promise"); }
+      if (typeof executor !== "function") { throw new TypeError("Promise resolver " + executor + " is not a function"); }
       wm.set(this, {});
       var priv = wm.get(this);
       priv["[[PromiseStack]]"] = [];
@@ -171,9 +163,7 @@
       }
       return next;
     };
-    PromisePolyfill.prototype.catch = function (onFail) {
-      return this.then(null, onFail);
-    };
+    PromisePolyfill.prototype.catch = function (onFail) { return this.then(null, onFail); };
     PromisePolyfill.resolve = function (value) {
       return new PromisePolyfill(function (resolve) {
         resolve(value);
