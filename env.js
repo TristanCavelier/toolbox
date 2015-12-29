@@ -128,7 +128,7 @@
       var i, a = promise["[[PromiseStack]]"], l = a.length;
       delete promise["[[PromiseStack]]"];
       for (i = 0; i < l; i += 3) {
-        setImmediate(handleListener, 0, promise, a[i], a[i + offset], offset);
+        setImmediate(handleListener, promise, a[i], a[i + offset], offset);
       }
     }
 
@@ -159,9 +159,9 @@
     PromisePolyfill.prototype.then = function (onDone, onFail) {
       var next = new PromisePolyfill(function () { return; });
       if (this["[[PromiseStatus]]"] === "resolved") {
-        setImmediate(handleListener, 0, this, next, onDone, 1);
+        setImmediate(handleListener, this, next, onDone, 1);
       } else if (this["[[PromiseStatus]]"] === "rejected") {
-        setImmediate(handleListener, 0, this, next, onFail, 2);
+        setImmediate(handleListener, this, next, onFail, 2);
       } else {
         this["[[PromiseStack]]"].push(next, onDone, onFail);
       }
