@@ -37,6 +37,7 @@
     env.setTimeout = typeof setTimeout === "function" ? setTimeout.bind(null) : null;
     env.clearTimeout = typeof clearTimeout === "function" ? clearTimeout.bind(null) : null;
     env.Promise = typeof Promise === "function" ? Promise : null;
+    env.WeakMapNative = typeof WeakMap === "function" ? WeakMap : null;
     env.encodeBinaryStringToBase64 = typeof btoa === "function" ? btoa.bind(null) : null;
     env.decodeBase64ToBinaryString = typeof atob === "function" ? atob.bind(null) : null;
   }());
@@ -78,7 +79,7 @@
 
   env.PromisePolyfill = (function () {
 
-    var queue = [], timerCount = 0, maxTimers = 6;
+    var queue = [], timerCount = 0, maxTimers = 6, wm;
     function exec() {
       timerCount -= 1;
       if (queue.length) { queue.shift()(); }
@@ -90,6 +91,11 @@
       queue.push(fn.apply.bind(fn, null, a));
       while (++timerCount < maxTimers) { setTimeout(exec); }
       setTimeout(exec);
+    }
+    if (env.WeakMapNative === null) {
+      wm = {get: function (a) { return a; }, set: function () { return; }};
+    } else {
+      wm = new env.WeakMapNative();
     }
 
     function handleListener(previous, next, listener, offset) {
@@ -144,26 +150,26 @@
       if (typeof executor !== "function") {
         throw new TypeError("Promise resolver " + executor + " is not a function");
       }
-      this["[[PromiseStack]]"] = [];
-      var it = this;
-      function resolve(value) { resolvePromise(it, value, 1); }
-      function reject(reason) { resolvePromise(it, reason, 2); }
+      wm.set(this, {});
+      var priv = wm.get(this);
+      priv["[[PromiseStack]]"] = [];
+      priv["[[PromiseStatus]]"] = "pending";
+      function resolve(value) { resolvePromise(priv, value, 1); }
+      function reject(reason) { resolvePromise(priv, reason, 2); }
       try {
         executor(resolve, reject);
       } catch (reason) {
         resolvePromise(this, reason, 2);
       }
     }
-    PromisePolyfill.prototype["[[PromiseValue]]"] = null;
-    PromisePolyfill.prototype["[[PromiseStatus]]"] = "pending";
     PromisePolyfill.prototype.then = function (onDone, onFail) {
-      var next = new PromisePolyfill(function () { return; });
-      if (this["[[PromiseStatus]]"] === "resolved") {
-        setImmediate(handleListener, this, next, onDone, 1);
-      } else if (this["[[PromiseStatus]]"] === "rejected") {
-        setImmediate(handleListener, this, next, onFail, 2);
+      var next = new PromisePolyfill(function () { return; }), priv = wm.get(this);
+      if (priv["[[PromiseStatus]]"] === "resolved") {
+        setImmediate(handleListener, this, wm.get(next), onDone, 1);
+      } else if (priv["[[PromiseStatus]]"] === "rejected") {
+        setImmediate(handleListener, this, wm.get(next), onFail, 2);
       } else {
-        this["[[PromiseStack]]"].push(next, onDone, onFail);
+        priv["[[PromiseStack]]"].push(wm.get(next), onDone, onFail);
       }
       return next;
     };
