@@ -353,8 +353,13 @@
 
   function TaskSequence(sequence) {
     // API stability level: 0 - Deprecated
+    if (TaskSequence["[[TaskSequenceDeprecated]]"]) {
+      delete TaskSequence["[[TaskSequenceDeprecated]]"];
+      try { console.warn("TaskSequence is deprecated, please use Task.sequence instead"); } catch (ignore) {}
+    }
     this["[[TaskSequencePromise]]"] = env.Task.sequence(sequence);
   }
+  TaskSequence["[[TaskSequenceDeprecated]]"] = true;
   TaskSequence.prototype["[[TaskSequencePromise]]"] = null;
   TaskSequence.prototype.then = function (a, b) { return this["[[TaskSequencePromise]]"].then(a, b); };
   TaskSequence.prototype.catch = function (a) { return this["[[TaskSequencePromise]]"].catch(a); };
@@ -1052,6 +1057,10 @@
   env.newMultiReader = function () { var c = env.MultiReader, o = Object.create(c.prototype); c.apply(o, arguments); return o; };
 
   function MultiWriter() {
+    //     MultiReader(readers...)
+
+    // API stability level: 1 - Experimental
+
     /*jslint plusplus: true */
     var i = 0, l = arguments.length, writers = new Array(l);
     while (i < l) { writers[i] = arguments[i++]; }
@@ -1070,6 +1079,7 @@
   env.newMultiWriter = function () { var c = env.MultiWriter, o = Object.create(c.prototype); c.apply(o, arguments); return o; };
 
   function TeeReader(reader, writer) {
+    // API stability level: 1 - Experimental
     this.reader = reader;
     this.writer = writer;
   }
