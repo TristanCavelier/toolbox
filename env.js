@@ -36,13 +36,11 @@
              btoa, atob */
     env.setTimeout = typeof setTimeout === "function" ? setTimeout.bind(null) : null;
     env.clearTimeout = typeof clearTimeout === "function" ? clearTimeout.bind(null) : null;
-    env.Promise = typeof Promise === "function" ? Promise : null;
+    env.PromiseNative = typeof Promise === "function" ? Promise : null;
     env.WeakMapNative = typeof WeakMap === "function" ? WeakMap : null;
     env.encodeBinaryStringToBase64 = typeof btoa === "function" ? btoa.bind(null) : null;
     env.decodeBase64ToBinaryString = typeof atob === "function" ? atob.bind(null) : null;
   }());
-
-  env.newPromise = function (executor) { return new env.Promise(executor); };
 
   //////////////
   // Polyfill //
@@ -66,15 +64,15 @@
     return setImmediate;
   };
 
-  if (typeof env.Promise === "function") {
+  if (env.PromiseNative === null) {
+    env.setImmediate = env.newSetImmediateFunctionBasedOnSeveralSetTimeouts();
+  } else {
     env.setImmediate = function (fn) {
       /*jslint plusplus: true */
       var l = arguments.length - 1, i = 0, args = new Array(l);
       while (i < l) { args[i] = arguments[++i]; }
-      env.Promise.resolve().then(fn.apply.bind(fn, null, args));
+      env.PromiseNative.resolve().then(fn.apply.bind(fn, null, args));
     };
-  } else {
-    env.setImmediate = env.newSetImmediateFunctionBasedOnSeveralSetTimeouts();
   }
 
   env.PromisePolyfill = (function () {
@@ -214,8 +212,8 @@
     return PromisePolyfill;
   }());
 
-  env.newPromisePolyfill = function () { var c = env.PromisePolyfill, o = Object.create(c.prototype); c.apply(o, arguments); return o; };
-  if (env.Promise === null) { env.Promise = env.PromisePolyfill; }
+  env.Promise = env.PromiseNative === null ? env.PromisePolyfill : env.PromiseNative;
+  env.newPromise = function (executor) { return new env.Promise(executor); };
 
   //////////////////////////
   // Promise Manipulation //
