@@ -1258,6 +1258,92 @@
   // Encoders //
   //////////////
 
+  function encodeArrayBufferToHexadecimal(arrayBuffer) {
+    /*jslint bitwise: true */
+    function bit4tohexchar(b) {
+      //if (b > 0x9) { return b + 55; }  // upper case
+      if (b > 0x9) { return b + 87; }  // lower case
+      return b + 48;
+    }
+    /*global Uint8Array */
+    arrayBuffer = new Uint8Array(arrayBuffer);
+    var r = new Uint8Array(arrayBuffer.length * 2), c, i, j = 0;
+    for (i = 0; i < arrayBuffer.length; i += 1) {
+      c = arrayBuffer[i];
+      if (c > 0xF) {
+        r[j] = bit4tohexchar(c >> 4);
+      } else {
+        r[j] = 48;
+      }
+      r[j + 1] = bit4tohexchar(c & 0xF);
+      j += 2;
+    }
+    return String.fromCharCode.apply(String, r);
+  }
+  env.encodeArrayBufferToHexadecimal = encodeArrayBufferToHexadecimal;
+
+  function encodeBinaryStringToHexadecimal(binaryString) {
+    // This method acts like `btoa` but returns a hexadecimal encoded string
+
+    /*jslint bitwise: true */
+    function bit4tohexchar(b) {
+      //if (b > 0x9) { return b + 55; }  // upper case
+      if (b > 0x9) { return b + 87; }  // lower case
+      return b + 48;
+    }
+    /*global Uint8Array */
+    var r = new Uint8Array(binaryString.length * 2), c, i, j = 0;
+    for (i = 0; i < binaryString.length; i += 1) {
+      c = binaryString.charCodeAt(i);
+      if (c > 0xFF) {
+        c = new Error("String contains an invalid character");
+        c.name = "InvalidCharacterError";
+        throw c;
+      }
+      if (c > 0xF) {
+        r[j] = bit4tohexchar(c >> 4);
+      } else {
+        r[j] = 48;
+      }
+      r[j + 1] = bit4tohexchar(c & 0xF);
+      j += 2;
+    }
+    return String.fromCharCode.apply(String, r);
+  }
+  env.encodeBinaryStringToHexadecimal = encodeBinaryStringToHexadecimal;
+
+  function decodeHexadecimalToArrayBuffer(text) {
+    /*global Uint8Array */
+    var r, i, c;
+    text = text.replace(/\s/g, "");
+    if (text.length % 2) {
+      text += "0";
+      r = new Uint8Array((text.length / 2) + 1);
+    } else {
+      r = new Uint8Array(text.length / 2);
+    }
+    for (i = 0; i < text.length; i += 2) {
+      c = (parseInt(text[i], 16) * 0x10) + parseInt(text[i + 1], 16);
+      if (isNaN(c)) {
+        c = new Error("String contains an invalid character");
+        c.name = "InvalidCharacterError";
+        c.code = 5;
+        throw c;
+      }
+      r[i / 2] = c;
+    }
+    return r.buffer;
+  }
+  env.decodeHexadecimalToArrayBuffer = decodeHexadecimalToArrayBuffer;
+
+  function decodeHexadecimalToBinaryString(text) {
+    // This method acts like `atob` but parses a hexadecimal encoded string
+
+    /*global Uint8Array */
+    return String.fromCharCode.apply(String, new Uint8Array(env.decodeHexadecimalToArrayBuffer(text)));
+  }
+  env.decodeHexadecimalToBinaryString = decodeHexadecimalToBinaryString;
+
   function encodeBinaryStringToBase64Polyfill(binaryString) {
     /*jslint bitwise: true */
     var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/", i = 0, l = binaryString.length, m = l % 3, lm = l - m, res = "", a, b, c;
@@ -1342,6 +1428,36 @@
   }
   env.decodeBase64ToBinaryStringPolyfill = decodeBase64ToBinaryStringPolyfill;
   if (env.decodeBase64ToBinaryString === null) { env.decodeBase64ToBinaryString = env.decodeBase64ToBinaryStringPolyfill; }
+
+  function encodeBlobToBase64TaskPolyfill(blob) {
+    /*global Uint8Array */
+    return env.Task.sequence([
+      function () { return env.task.readBlobAsArrayBuffer(blob); },
+      function (ab) { return env.encodeBinaryStringToBase64(String.fromCharCode.apply(null, new Uint8Array(ab))); }
+    ]);
+  }
+  env.task.encodeBlobToBase64Polyfill = encodeBlobToBase64TaskPolyfill;
+  env.task.encodeBlobToBase64 = encodeBlobToBase64TaskPolyfill;
+
+  function encodeBlobToBase64TaskNative(blob) {
+    var d = env.newDeferred(), fr = new FileReader();
+    fr.onload = function (ev) { return d.resolve(ev.target.result.slice(37)); };
+    fr.onerror = function () { return d.reject(new Error("Unable to read blob as data url")); };
+    fr.onabort = function () { return d.reject(new Error("Cancelled")); };
+    d.promise.cancel = function () { fr.abort(); };
+    fr.readAsDataURL(new Blob([blob], {"type": "application/octet-stream"}));
+    return d.promise;
+  }
+
+  encodeBlobToBase64TaskNative(new Blob(["hello"], {"type": "text/plain;charset=ascii"})).then(function (text) {
+    /*global console */
+    if (text === "aGVsbG8=") {
+      if (env.task.encodeBlobToBase64Native === undefined) { env.task.encodeBlobToBase64Native = encodeBlobToBase64TaskNative; }
+      if (env.task.encodeBlobToBase64 === encodeBlobToBase64TaskPolyfill) { env.task.encodeBlobToBase64 = encodeBlobToBase64TaskNative; }
+      return;
+    }
+    console.warn("env: encodeBlobToBase64Task cannot be encodeBlobToBase64TaskNative -> aGVsbG8= != " + text);
+  });
 
   //////////////////////
   // Bit manipulators //
