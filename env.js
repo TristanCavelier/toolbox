@@ -680,7 +680,8 @@
     xhr.send(param.data);
     return d.promise;
   }
-  env.newXmlHttpRequestTask = newXmlHttpRequestTask;
+  env.task.newXmlHttpRequest = newXmlHttpRequestTask;
+  env.task.xhr = newXmlHttpRequestTask;
 
   ////////////////////
   // Worker helpers //
@@ -715,7 +716,7 @@
     worker.postMessage(value);
     return d.promise;
   }
-  env.evalOnWorkerTask = evalOnWorkerTask;
+  env.task.evalOnWorker = evalOnWorkerTask;
 
   /////////////////////////
   // Object Manipulation //
