@@ -422,6 +422,25 @@
   env.EventManager = EventManager;
   env.newEventManager = function () { var c = env.EventManager, o = Object.create(c.prototype); c.apply(o, arguments); return o; };
 
+
+  ///////////////////////
+  // Time manipulation //
+  ///////////////////////
+
+  function sleepTask(ms) {
+    var timer, rejecter, promise = env.newPromise(function (resolve, reject) {
+      timer = env.setTimeout(resolve, ms);
+      rejecter = reject;
+    });
+    promise.cancel = function () {
+      env.clearTimeout(timer);
+      rejecter(new Error("cancelled"));
+    };
+    return promise;
+  }
+  env.task.sleep = sleepTask;
+
+
   ////////////
   // Random //
   ////////////
