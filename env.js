@@ -375,6 +375,125 @@
   env.TaskSequence = TaskSequence;
   env.newTaskSequence = function () { var c = env.TaskSequence, o = Object.create(c.prototype); c.apply(o, arguments); return o; };
 
+  (function () {
+
+    function channelFifoPush(channel, type, value) {
+      var hik = "[[Channel:" + type + ":headIndex]]", hi = channel[hik] || 0, lk = "[[Channel:" + type + ":length]]";
+      channel["[[Channel:" + type + ":" + hi + "]]"] = value;
+      channel[hik] = hi + 1;
+      channel[lk] = (channel[lk] || 0) + 1;
+    }
+    function channelFifoPop(channel, type) {
+      var v, tik = "[[Channel:" + type + ":tailIndex]]",
+        ti = channel[tik] || 0,
+        hi = channel["[[Channel:" + type + ":headIndex]]"] || 0,
+        vk = "[[Channel:" + type + ":" + ti + "]]";
+      if (ti < hi) {
+        v = channel[vk];
+        delete channel[vk];
+        channel[tik] = ti + 1;
+        channel["[[Channel:" + type + ":length]]"] -= 1;
+        return v;
+      }
+    }
+
+    function channelDeferred(v) {
+      var d = {
+        value: v,
+        resolve: null,
+        reject: null,
+        promise: null
+      };
+      d.promise = env.newPromise(function (r, j) {
+        d.resolve = r;
+        d.reject = j;
+      });
+      d.promise.cancel = function () {
+        delete d.value;
+        d.done = true;
+        d.reject(new Error("cancelled"));
+      };
+      return d;
+    }
+
+    function Channel(capacity) {
+      // API stability level: 1 - Experimental
+      if (capacity > 0) { this["[[ChannelCapacity]]"] = capacity; }
+    }
+    Channel.CLOSED_ERROR = Channel.prototype.CLOSED_ERROR = new Error("closed channel");
+    Channel.prototype.getLength = function () { return this["[[Channel:send:length]]"] || 0; };
+    Channel.prototype.getCapacity = function () { return this["[[ChannelCapacity]]"] || 0; };
+    Channel.prototype.close = function () {
+      /*jslint ass: true */
+      this["[[ChannelError]]"] = Channel.CLOSED_ERROR;
+      var next;
+      while ((next = channelFifoPop(this, "next")) !== undefined) {
+        if (!next.done) { return next.resolve({done: true}); }
+      }
+    };
+    Channel.prototype.throw = function (e) {
+      /*jslint ass: true */
+      this["[[ChannelError]]"] = e;
+      var next;
+      while ((next = channelFifoPop(this, "next")) !== undefined) {
+        if (!next.done) { return next.reject(e); }
+      }
+    };
+    Channel.prototype.send = function (v) {
+      /*jslint plusplus: true, ass: true */
+      var next, send;
+      if (this["[[ChannelError]]"]) { return env.Promise.reject(this["[[ChannelError]]"]); }
+      while ((next = channelFifoPop(this, "next")) !== undefined) {
+        if (!next.done) { return next.resolve({value: v}); }
+      }
+      send = channelDeferred(v);
+      channelFifoPush(this, "send", send);
+      if (this["[[Channel:send:length]]"] <= this["[[ChannelCapacity]]"]) { send.resolve(); }  // XXX dont return ?
+      return send.promise;
+    };
+    Channel.prototype.next = function () {
+      /*jslint plusplus: true, ass: true */
+      var next, send;
+      while ((send = channelFifoPop(this, "send")) !== undefined) {
+        if (!send.done) {
+          send.resolve();
+          return env.Promise.resolve({value: send.value});  // XXX dont return {value: value} directly ?
+        }
+      }
+      if (this["[[ChannelError]]"]) {
+        if (this["[[ChannelError]]"] === Channel.CLOSED_ERROR) {
+          return env.Promise.resolve({done: true});  // XXX dont return {done: true} directly ?
+        }
+        return env.Promise.reject(this["[[ChannelError]]"]);
+      }
+      next = channelDeferred();
+      channelFifoPush(this, "next", next);
+      return next.promise;
+    };
+    Channel.select = function (cases) {
+      // API stability level: 1 - Experimental
+      var i, l = cases.length, r = new Array(l), fn = new Array(l);
+      function nop() { return; }
+      function wrap(i, v) { return {index: i, value: v}; }
+      for (i = 0; i < l; i += 1) {
+        if (typeof cases[i] === "function") {
+          fn[i] = cases[i];
+          r[i] = env.Task.sequence([nop, wrap.bind(null, i)]);
+        } else {
+          fn[i] = cases[i][1];
+          r[i] = env.Task.sequence([cases[i][0].next.bind(cases[i][0]), wrap.bind(null, i)]);
+        }
+      }
+      return env.Task.sequence([env.Task.raceWinOrCancel.bind(null, r), function (o) {
+        return fn[o.index](o.value);
+      }]);
+    };
+
+    env.Channel = Channel;
+    env.newChannel = function () { var c = env.Channel, o = Object.create(c.prototype); c.apply(o, arguments); return o; };
+
+  }());
+
   /////////////////////
   // Event Mechanism //
   /////////////////////
