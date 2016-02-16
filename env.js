@@ -221,6 +221,13 @@
 
   (function () {
 
+    var wm;
+    if (env.WeakMapNative) {
+      wm = new env.WeakMapNative();
+    } else {
+      wm = {get: function (a) { return a; }, set: function () { return; }};
+    }
+
     function magicDeferred() {
       var resolve, promise = env.newPromise(function (r) { resolve = r; });
       promise.cancel = resolve;
@@ -228,47 +235,48 @@
       return promise;
     }
 
-    function Task(generator) {
+    function Task(generatorFunction) {
+      wm.set(this, {});
+      var it = wm.get(this);
       // API stability level: 1 - Experimental
-      this["[[TaskPromise]]"] = env.newPromise(function (resolve, reject) {
-        var g = generator();
+      it["[[TaskPromise]]"] = env.newPromise(function (resolve, reject) {
+        var g = generatorFunction();
         function rec(method, prev) {
           /*jslint ass: true */
-          if (this["[[TaskCancelled]]"]) { return reject(new Error("task cancelled")); }
-          if (this["[[TaskPaused]]"]) { return (this["[[TaskSubPromise]]"] = magicDeferred()).then(rec.bind(this, method, prev)); }
+          if (it["[[TaskCancelled]]"]) { return reject(new Error("task cancelled")); }
+          if (it["[[TaskPaused]]"]) { return (it["[[TaskSubPromise]]"] = magicDeferred()).then(rec.bind(it, method, prev)); }
           var next;
           try { next = g[method](prev); } catch (e) { return reject(e); }
           if (next.done) { return resolve(next.value); }
-          this["[[TaskSubPromise]]"] = next = next.value;
-          if (this["[[TaskCancelled]]"] && next && typeof next.then === "function" && typeof next.cancel === "function") { try { next.cancel(); } catch (e) { return reject(e); } }
-          if (this["[[TaskPaused]]"] && next && typeof next.then === "function" && typeof next.pause === "function") { try { next.pause(); } catch (e) { return reject(e); } }
-          if (!next || typeof next.then !== "function") { next = env.Promise.resolve(next); }  // `{ return rec.call(this, "next"); }` directly here to be as synchronous as possible
-          return next.then(rec.bind(this, "next"), rec.bind(this, "throw"));
+          it["[[TaskSubPromise]]"] = next = next.value;
+          if (it["[[TaskCancelled]]"] && next && typeof next.then === "function" && typeof next.cancel === "function") { try { next.cancel(); } catch (e) { return reject(e); } }
+          if (it["[[TaskPaused]]"] && next && typeof next.then === "function" && typeof next.pause === "function") { try { next.pause(); } catch (e) { return reject(e); } }
+          if (!next || typeof next.then !== "function") { next = env.Promise.resolve(next); }  // `{ return rec.call(it, "next"); }` directly here to be as synchronous as possible
+          return next.then(rec.bind(it, "next"), rec.bind(it, "throw"));
         }
-        rec.call(this, "next");
-      }.bind(this));
+        rec.call(it, "next");
+      }.bind(it));
     }
-    Task.prototype["[[TaskPromise]]"] = null;
-    Task.prototype["[[TaskSubPromise]]"] = null;
-    Task.prototype["[[TaskCancelled]]"] = false;
-    Task.prototype["[[TaskPaused]]"] = false;
-    Task.prototype.then = function () { var p = this["[[TaskPromise]]"]; return p.then.apply(p, arguments); };
-    Task.prototype.catch = function () { var p = this["[[TaskPromise]]"]; return p.catch.apply(p, arguments); };
+    Task.prototype.then = function () { var p = wm.get(this)["[[TaskPromise]]"]; return p.then.apply(p, arguments); };
+    Task.prototype.catch = function () { var p = wm.get(this)["[[TaskPromise]]"]; return p.catch.apply(p, arguments); };
     Task.prototype.cancel = function () {
-      this["[[TaskCancelled]]"] = true;
-      var p = this["[[TaskSubPromise]]"];
+      var it = wm.get(this), p;
+      it["[[TaskCancelled]]"] = true;
+      p = it["[[TaskSubPromise]]"];
       if (p && typeof p.then === "function" && typeof p.cancel === "function") { p.cancel(); }
       return this;
     };
     Task.prototype.pause = function () {
-      this["[[TaskPaused]]"] = true;
-      var p = this["[[TaskSubPromise]]"];
+      var it = wm.get(this), p;
+      it["[[TaskPaused]]"] = true;
+      p = it["[[TaskSubPromise]]"];
       if (p && typeof p.then === "function" && typeof p.pause === "function") { p.pause(); }
       return this;
     };
     Task.prototype.resume = function () {
-      delete this["[[TaskPaused]]"];
-      var p = this["[[TaskSubPromise]]"];
+      var it = wm.get(this), p;
+      delete it["[[TaskPaused]]"];
+      p = it["[[TaskSubPromise]]"];
       if (p && typeof p.then === "function" && typeof p.resume === "function") { p.resume(); }
       return this;
     };
@@ -311,18 +319,20 @@
     env.newTask = function () { var c = env.Task, o = Object.create(c.prototype); c.apply(o, arguments); return o; };
 
     function TaskThen(previous, onDone, onFail) {
+      wm.set(this, {});
+      var it = wm.get(this);
       // API stability level: 1 - Experimental
       function rec(fn, v) {
         /*jslint ass: true */
-        if (this["[[TaskCancelled]]"]) { throw new Error("task cancelled"); }
-        if (this["[[TaskPaused]]"]) { return new TaskThen(this["[[TaskSubPromise]]"] = magicDeferred(), rec.bind(this, fn, v)); }
-        var p = this["[[TaskSubPromise]]"] = fn(v);
-        if (this["[[TaskCancelled]]"] && p && typeof p.then === "function" && typeof p.cancel === "function") { p.cancel(); }
-        if (this["[[TaskPaused]]"] && p && typeof p.then === "function" && typeof p.pause === "function") { p.pause(); }
+        if (it["[[TaskCancelled]]"]) { throw new Error("task cancelled"); }
+        if (it["[[TaskPaused]]"]) { return new TaskThen(it["[[TaskSubPromise]]"] = magicDeferred(), rec.bind(it, fn, v)); }
+        var p = it["[[TaskSubPromise]]"] = fn(v);
+        if (it["[[TaskCancelled]]"] && p && typeof p.then === "function" && typeof p.cancel === "function") { p.cancel(); }
+        if (it["[[TaskPaused]]"] && p && typeof p.then === "function" && typeof p.pause === "function") { p.pause(); }
         return p;
       }
-      previous = this["[[TaskSubPromise]]"] = previous && typeof previous.then === "function" ? previous : env.Promise.resolve();
-      this["[[TaskPromise]]"] = previous.then(typeof onDone === "function" ? rec.bind(this, onDone) : onDone, typeof onFail === "function" ? rec.bind(this, onFail) : onFail);
+      previous = it["[[TaskSubPromise]]"] = previous && typeof previous.then === "function" ? previous : env.Promise.resolve();
+      it["[[TaskPromise]]"] = previous.then(typeof onDone === "function" ? rec.bind(it, onDone) : onDone, typeof onFail === "function" ? rec.bind(it, onFail) : onFail);
     }
     TaskThen.prototype = Object.create(env.Task.prototype);
     env.TaskThen = TaskThen;
