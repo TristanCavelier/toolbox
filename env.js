@@ -2,7 +2,7 @@
 (function script(exportRoot, exportKey) {
   "use strict";
 
-  /*! Copyright (c) 2015 Tristan Cavelier <t.cavelier@free.fr>
+  /*! Copyright (c) 2015-2016 Tristan Cavelier <t.cavelier@free.fr>
       This program is free software. It comes without any warranty, to
       the extent permitted by applicable law. You can redistribute it
       and/or modify it under the terms of the Do What The Fuck You Want
@@ -90,10 +90,10 @@
       while (++timerCount < maxTimers) { setTimeout(exec); }
       setTimeout(exec);
     }
-    if (env.WeakMapNative === null) {
-      wm = {get: function (a) { return a; }, set: function () { return; }};
-    } else {
+    if (env.WeakMapNative) {
       wm = new env.WeakMapNative();
+    } else {
+      wm = {get: function (a) { return a; }, set: function () { return; }};
     }
 
     function handleListener(previous, next, listener, offset) {
@@ -344,9 +344,11 @@
       return p || env.Promise.resolve();
     };
   }());
+  env.task = env.newTask.bind(null);
 
   function TaskSequence(sequence) {
     // API stability level: 0 - Deprecated
+    /*global console */
     if (TaskSequence["[[TaskSequenceDeprecated]]"]) {
       delete TaskSequence["[[TaskSequenceDeprecated]]"];
       try { console.warn("TaskSequence is deprecated, please use Task.sequence instead"); } catch (ignore) {}
@@ -575,8 +577,7 @@
 
   function newXmlHttpRequestTask(param) {
     /**
-     *    newXmlHttpRequestTask({url: location, responseType: "text"}).then(propertyGetter("response"));
-     *    newXmlHttpRequestTask({url: location}).then(propertyGetter("headers", "Content-Length"));
+     *    newXmlHttpRequestTask({url: location, responseType: "text"}).then(propertyGetter("responseText"));
      *
      * Send request with XHR and return a promise. xhr.onload: The promise is
      * resolved when the status code is lower than 400 with a forged response
@@ -869,6 +870,8 @@
   //////////////////////////////
 
   env.new = function (Constructor) {
+    // env.newPromise = env.new.bind(null, Promise)
+
     // API stability level: 2 - Stable
 
     /*jslint plusplus: true */
@@ -968,7 +971,7 @@
   ArrayReader.prototype.index = 0;
   ArrayReader.prototype.read = function (count) {
     //     read([count int]) array
-    // `count === undefined` means `count === Infinity`
+    // `count === undefined` means "size of internal buffer"
     /*jslint plusplus: true */
     var res = [], i = 0, b = this.raw, bl = b.length;
     if (count === undefined) {
@@ -1439,7 +1442,6 @@
 
   env.btoa = env.encodeBinaryStringToBase64;
   env.atob = env.decodeBase64ToBinaryString;
-  env.spawn = env.newTask;
   env.seq = env.Task.sequence;
 
   //////////////////////////////////////////////////////////////////////
