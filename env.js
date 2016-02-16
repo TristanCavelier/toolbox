@@ -822,15 +822,65 @@
   // function manipulation //
   ///////////////////////////
 
-  function functionsToGenerator(functions) {
+  (function () {
+    function executeFunction(f, value) {
+      try {
+        value = f(value);
+        if (this["[[GeneratorFromFunctionsIndex]]"] === this["[[GeneratorFromFunctionsFunctions]]"].length) {
+          return {"done": true, "value": value};
+        }
+        return {"value": value};
+      } catch (e) {
+        return this.throw(e);
+      }
+    }
+    function GeneratorFromFunctions(functions) {
+      this["[[GeneratorFromFunctionsFunctions]]"] = functions;
+      this["[[GeneratorFromFunctionsIndex]]"] = 0;
+    }
+    GeneratorFromFunctions.prototype.next = function (value) {
+      var i = this["[[GeneratorFromFunctionsIndex]]"], functions = this["[[GeneratorFromFunctionsFunctions]]"], f;
+      while (i < functions.length) {
+        f = functions[i];
+        if (typeof f === "function") {
+          this["[[GeneratorFromFunctionsIndex]]"] = i + 1;
+          return executeFunction.call(this, f, value);
+        }
+        if (f && typeof f[0] === "function") {
+          this["[[GeneratorFromFunctionsIndex]]"] = i + 1;
+          return executeFunction.call(this, f[0], value);
+        }
+        i += 1;
+      }
+      this["[[GeneratorFromFunctionsIndex]]"] = i;
+      return {"done": true, "value": value};
+    };
+    GeneratorFromFunctions.prototype.throw = function (reason) {
+      var i = this["[[GeneratorFromFunctionsIndex]]"], functions = this["[[GeneratorFromFunctionsFunctions]]"], f;
+      while (i < functions.length) {
+        f = functions[i];
+        if (f && typeof f[1] === "function") {
+          this["[[GeneratorFromFunctionsIndex]]"] = i + 1;
+          return executeFunction.call(this, f[1], reason);
+        }
+        i += 1;
+      }
+      this["[[GeneratorFromFunctionsIndex]]"] = i;
+      throw reason;
+    };
+    env.GeneratorFromFunctions = GeneratorFromFunctions;
+    env.newGeneratorFromFunctions = function () { var c = env.GeneratorFromFunctions, o = Object.create(c.prototype); c.apply(o, arguments); return o; };
+  }());
+
+  function makeGeneratorFunctionFromFunctions(functions) {
     /**
-     *     functionsToGenerator(functions): Generator
+     *     makeGeneratorFunctionFromFunctions(functions): GeneratorFunction
      *
      * Convert a sequence of function to a kind of generator function.
      * This function works with old ECMAScript version.
      *
      *     var config;
-     *     functionsToGenerator([function () {
+     *     return task(makeGeneratorFunctionFromFunctions([function () {
      *       return getConfig();
      *     }, function (_config) {
      *       config = _config;
@@ -840,60 +890,14 @@
      *       return putConfig(config);
      *     }, [null, function (e) {
      *       console.error(e);
-     *     }]]);
+     *     }]]));
      *
      * @param  {Array} functions An array of function.
-     * @return {Generator} A new Generator
+     * @return {GeneratorFunction} A new GeneratorFunction
      */
-    return function () {
-      var i = 0, g;
-      function exec(f, value) {
-        try {
-          value = f(value);
-          if (i === functions.length) {
-            return {"done": true, "value": value};
-          }
-          return {"value": value};
-        } catch (e) {
-          return g.throw(e);
-        }
-      }
-      g = {
-        "next": function (value) {
-          var f;
-          while (i < functions.length) {
-            if (Array.isArray(functions[i])) {
-              f = functions[i][0];
-            } else {
-              f = functions[i];
-            }
-            if (typeof f === "function") {
-              i += 1;
-              return exec(f, value);
-            }
-            i += 1;
-          }
-          return {"done": true, "value": value};
-        },
-        "throw": function (value) {
-          var f;
-          while (i < functions.length) {
-            if (Array.isArray(functions[i])) {
-              f = functions[i][1];
-            }
-            if (typeof f === "function") {
-              i += 1;
-              return exec(f, value);
-            }
-            i += 1;
-          }
-          throw value;
-        }
-      };
-      return g;
-    };
+    return env.newGeneratorFromFunctions.bind(env, functions);
   }
-  env.functionsToGenerator = functionsToGenerator;
+  env.makeGeneratorFunctionFromFunctions = makeGeneratorFunctionFromFunctions;
 
   //////////////////////////////
   // Constructor manipulation //
