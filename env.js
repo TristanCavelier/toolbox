@@ -377,11 +377,38 @@
 
   (function () {
 
+    function channelDeferred(v, channel, key) {
+      var d = {
+        value: v,
+        channel: channel,
+        channelKey: key,
+        resolve: null,
+        reject: null,
+        promise: null
+      };
+      d.promise = env.newPromise(function (r, j) {
+        d.resolve = r;
+        d.reject = j;
+      });
+      d.promise.cancel = function () {
+        delete d.channel[d.channelKey];
+        delete d.value;
+        d.done = true;
+        d.reject(new Error("cancelled"));
+      };
+      return d;
+    }
+
     function channelFifoPush(channel, type, value) {
-      var hik = "[[Channel:" + type + ":headIndex]]", hi = channel[hik] || 0, lk = "[[Channel:" + type + ":length]]";
-      channel["[[Channel:" + type + ":" + hi + "]]"] = value;
+      var hik = "[[Channel:" + type + ":headIndex]]",
+        hi = channel[hik] || 0,
+        lk = "[[Channel:" + type + ":length]]",
+        hk = "[[Channel:" + type + ":" + hi + "]]",
+        deferred = channelDeferred(value, channel, hk);
+      channel[hk] = deferred;
       channel[hik] = hi + 1;
       channel[lk] = (channel[lk] || 0) + 1;
+      return deferred;
     }
     function channelFifoPop(channel, type) {
       var v, tik = "[[Channel:" + type + ":tailIndex]]",
@@ -397,25 +424,6 @@
       }
     }
 
-    function channelDeferred(v) {
-      var d = {
-        value: v,
-        resolve: null,
-        reject: null,
-        promise: null
-      };
-      d.promise = env.newPromise(function (r, j) {
-        d.resolve = r;
-        d.reject = j;
-      });
-      d.promise.cancel = function () {
-        delete d.value;
-        d.done = true;
-        d.reject(new Error("cancelled"));
-      };
-      return d;
-    }
-
     function Channel(capacity) {
       // API stability level: 1 - Experimental
       if (capacity > 0) { this["[[ChannelCapacity]]"] = capacity; }
@@ -427,35 +435,38 @@
       /*jslint ass: true */
       this["[[ChannelError]]"] = Channel.CLOSED_ERROR;
       var next;
-      while ((next = channelFifoPop(this, "next")) !== undefined) {
-        if (!next.done) { return next.resolve({done: true}); }
+      while (this["[[Channel:next:length]]"] > 0) {
+        next = channelFifoPop(this, "next");
+        if (next && !next.done) { return next.resolve({done: true}); }
       }
     };
     Channel.prototype.throw = function (e) {
       /*jslint ass: true */
       this["[[ChannelError]]"] = e;
       var next;
-      while ((next = channelFifoPop(this, "next")) !== undefined) {
-        if (!next.done) { return next.reject(e); }
+      while (this["[[Channel:next:length]]"] > 0) {
+        next = channelFifoPop(this, "next");
+        if (next && !next.done) { return next.reject(e); }
       }
     };
     Channel.prototype.send = function (v) {
       /*jslint plusplus: true, ass: true */
       var next, send;
       if (this["[[ChannelError]]"]) { return env.Promise.reject(this["[[ChannelError]]"]); }
-      while ((next = channelFifoPop(this, "next")) !== undefined) {
-        if (!next.done) { return next.resolve({value: v}); }
+      while (this["[[Channel:next:length]]"] > 0) {
+        next = channelFifoPop(this, "next");
+        if (next && !next.done) { return next.resolve({value: v}); }
       }
-      send = channelDeferred(v);
-      channelFifoPush(this, "send", send);
+      send = channelFifoPush(this, "send", v);
       if (this["[[Channel:send:length]]"] <= this["[[ChannelCapacity]]"]) { send.resolve(); }  // XXX dont return ?
       return send.promise;
     };
     Channel.prototype.next = function () {
       /*jslint plusplus: true, ass: true */
-      var next, send;
-      while ((send = channelFifoPop(this, "send")) !== undefined) {
-        if (!send.done) {
+      var send;
+      while (this["[[Channel:send:length]]"] > 0) {
+        send = channelFifoPop(this, "send");
+        if (send && !send.done) {
           send.resolve();
           return env.Promise.resolve({value: send.value});  // XXX dont return {value: value} directly ?
         }
@@ -466,9 +477,7 @@
         }
         return env.Promise.reject(this["[[ChannelError]]"]);
       }
-      next = channelDeferred();
-      channelFifoPush(this, "next", next);
-      return next.promise;
+      return channelFifoPush(this, "next").promise;
     };
     Channel.select = function (cases) {
       // API stability level: 1 - Experimental
