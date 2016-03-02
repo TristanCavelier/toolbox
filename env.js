@@ -701,14 +701,14 @@
     //   X-Cache: HIT via me\r\n
     //   X-Cache: HIT via other\r\n"
     // Returns ->
-    //   [ ["Server", "SimpleHTTP/0.6 Python/3.4.1"],
-    //     ["Date", "Wed, 04 Jun 2014 14:06:57 GMT"],
-    //     ["Value", "hello guys"],  // XXX check if it is the good behavior (refer to `xhr.getResponseHeader("Value")`)
-    //     ["Content-Type", "application/x-silverlight"],
-    //     ["Content-Length", "11240"],
-    //     ["Last-Modified", "Mon, 03 Dec 2012 23:51:07 GMT"],
-    //     ["X-Cache", "HIT via me"],
-    //     ["X-Cache", "HIT via other"] ]
+    //   [ "Server", "SimpleHTTP/0.6 Python/3.4.1",
+    //     "Date", "Wed, 04 Jun 2014 14:06:57 GMT",
+    //     "Value", "hello guys",  // XXX check if it is the good behavior (refer to `xhr.getResponseHeader("Value")`)
+    //     "Content-Type", "application/x-silverlight",
+    //     "Content-Length", "11240",
+    //     "Last-Modified", "Mon, 03 Dec 2012 23:51:07 GMT",
+    //     "X-Cache", "HIT via me",
+    //     "X-Cache", "HIT via other" ]
 
     // API stability level: 2 - Stable
 
@@ -720,7 +720,7 @@
       if (line[0] === " " || line[0] === "\t") {
         value += " " + line.replace(/^\s*/, "").replace(/\s*$/, "");
       } else {
-        if (key) { result.push([key, value]); }
+        if (key) { result.push(key, value); }
         key = /^([^:]+)\s*:\s*(.*)$/.exec(line);
         if (key) {
           value = key[2].replace(/\s*$/, "");
