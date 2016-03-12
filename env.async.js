@@ -11,7 +11,8 @@
 
   // dependency: setTimeout
   // optional dependency: Promise
-  // provides: env.setTimeout, env.setImmediate, env.{,new}Promise, env.{,new}Deferred
+  // provides: env.setTimeout, env.clearTimeout, env.setImmediate,
+  //           env.{,new}Promise, env.{,new}Deferred
 
   var setImmediate = typeof Promise === "function " ? (function () {
     var resolved = Promise.resolve();
@@ -155,7 +156,8 @@
   }
 
   env.registerLib(envAsync);
-  env.setTimeout = setTimeout;
+  env.setTimeout = setTimeout.bind(null);
+  env.clearTimeout = clearTimeout.bind(null);
   env.setImmediate = setImmediate;
   env.Promise = RealPromise;
   env.newPromise = function (executor) { return new env.Promise(executor); };
