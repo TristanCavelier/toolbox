@@ -15,7 +15,7 @@
   function test(name, taskFn, timeout) {
     return env.Task.raceWinOrCancel([
       env.task(taskFn),
-      env.Task.sequence([env.task.sleep.bind(null, timeout || 1000), function () { throw new Error("test timeout (" + name + ")"); }])
+      env.Task.sequence([env.sleep.bind(null, timeout || 1000), function () { throw new Error("test timeout (" + name + ")"); }])
     ]).catch(function (v) {
       warn(name);
       warn(v);
@@ -56,14 +56,14 @@
   });
   test("'close' a channel during waiting next", function* () {
     var chan = env.newChannel(), v;
-    env.task.sleep(100).then(chan.close.bind(chan));
+    env.sleep(100).then(chan.close.bind(chan));
     v = yield chan.next();
     if (v.done !== true) { throw "wrong value"; }
   });
   test("'Channel.select' gets first responding next", function* () {
     var chan = env.newChannel(), chan2 = env.newChannel(), v;
-    env.task.sleep(100).then(chan.send.bind(chan, "test5 coucou"));
-    env.task.sleep(500).then(chan2.send.bind(chan2, "test5 hello"));
+    env.sleep(100).then(chan.send.bind(chan, "test5 coucou"));
+    env.sleep(500).then(chan2.send.bind(chan2, "test5 hello"));
     v = yield env.Channel.select([
       [chan2, function () { warn("should not happen"); }],
       [chan, function (v) { return v.value; }]
@@ -72,8 +72,8 @@
   });
   test("'Channel.select' gets run default if no next are available now", function* () {
     var chan = env.newChannel(), chan2 = env.newChannel(), v;
-    env.task.sleep(100).then(chan.send.bind(chan, "test6 coucou"));
-    env.task.sleep(500).then(chan2.send.bind(chan2, "test6 hello"));
+    env.sleep(100).then(chan.send.bind(chan, "test6 coucou"));
+    env.sleep(500).then(chan2.send.bind(chan2, "test6 hello"));
     v = yield env.Channel.select([
       [chan2, function () { warn("should not happen"); }],
       [chan, function (v) { return v; }],
@@ -84,7 +84,7 @@
   test("'Channel.select' gets run available not default", function* () {
     var chan = env.newChannel(), chan2 = env.newChannel(), v;
     chan.send("test coucou")
-    env.task.sleep(500).then(chan2.send.bind(chan2, "test hello"));
+    env.sleep(500).then(chan2.send.bind(chan2, "test hello"));
     v = yield env.Channel.select([
       [chan2, function () { warn("should not happen"); }],
       [chan, function (v) { return v.value; }],
@@ -94,12 +94,12 @@
   });
   test("'Channel.select' cancels next before calling callback", function* () {
     var chan = env.newChannel(), chan2 = env.newChannel(), v;
-    env.task.sleep(100).then(chan.send.bind(chan, "test7 coucou")).then(null, warn.bind("should not happen"));
-    env.task.sleep(500).then(chan2.send.bind(chan2, "test7 hello")).then(warn.bind(null, "should not happen"), warn.bind("should not happen"));
+    env.sleep(100).then(chan.send.bind(chan, "test7 coucou")).then(null, warn.bind("should not happen"));
+    env.sleep(500).then(chan2.send.bind(chan2, "test7 hello")).then(warn.bind(null, "should not happen"), warn.bind("should not happen"));
     v = yield env.Channel.select([
       [chan2, function () { warn("should not happen"); }],
       [chan, function (v) {
-        return env.task.sleep(600).then(function () { return v.value; });
+        return env.sleep(600).then(function () { return v.value; });
       }]
     ]);
     if (v !== "test7 coucou") { throw "wrong value"; }
